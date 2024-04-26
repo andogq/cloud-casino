@@ -1,9 +1,9 @@
 use maud::{html, Markup};
 
-use super::Forecast;
+use super::{Point, Service};
 
-pub async fn render_forecast(latitude: f64, longitude: f64) -> Markup {
-    let forecast = Forecast::get(latitude, longitude).await;
+pub async fn render_forecast(service: Service, location: Point) -> Markup {
+    let forecast = service.get_forecast(location).await;
 
     html! {
         #forecast.card {

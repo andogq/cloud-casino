@@ -1,14 +1,21 @@
 mod weather;
 
 use axum::{
+    extract::State,
     routing::{get, post},
     Form, Router,
 };
 use maud::{html, Markup};
 use serde::{Deserialize, Deserializer};
 use tower_http::services::ServeDir;
+use weather::{Point, Service};
 
 use crate::weather::render_forecast;
+
+const MELBOURNE: Point = Point {
+    latitude: -37.814,
+    longitude: 144.9633,
+};
 
 fn page(body: Markup) -> Markup {
     html! {
@@ -26,9 +33,9 @@ fn page(body: Markup) -> Markup {
     }
 }
 
-async fn home() -> Markup {
+async fn home(State(service): State<Service>) -> Markup {
     page(html! {
-        (render_forecast(-37.814, 144.9633).await)
+        (render_forecast(service, MELBOURNE).await)
 
         form #bet-form .card hx-post="/payout" hx-target="#payout" hx-trigger="input delay:0.5s" {
             h1 style="grid-area: title" { "Place Your Bets" }
@@ -99,8 +106,8 @@ async fn payout(Form(form): Form<CalculateInput>) -> Markup {
     html! { (format!("{max_payout:.2}")) }
 }
 
-async fn forecast() -> Markup {
-    render_forecast(-37.814, 144.9633).await
+async fn forecast(State(service): State<Service>) -> Markup {
+    render_forecast(service, MELBOURNE).await
 }
 
 #[tokio::main]
@@ -109,7 +116,8 @@ async fn main() {
         .route("/", get(home))
         .route("/payout", post(payout))
         .route("/forecast", get(forecast))
-        .fallback_service(ServeDir::new("./static"));
+        .fallback_service(ServeDir::new("./static"))
+        .with_state(Service::new());
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
