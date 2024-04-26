@@ -7,7 +7,8 @@ use axum::{
 use maud::{html, Markup};
 use serde::{Deserialize, Deserializer};
 use tower_http::services::ServeDir;
-use weather::Forecast;
+
+use crate::weather::render_forecast;
 
 fn page(body: Markup) -> Markup {
     html! {
@@ -26,69 +27,25 @@ fn page(body: Markup) -> Markup {
 }
 
 async fn home() -> Markup {
-    let forecast = Forecast::get(-37.814, 144.9633).await;
-
     page(html! {
-        h1 { "This Week's Forecast" }
+        (render_forecast(-37.814, 144.9633).await)
 
-        #forecast {
-            @for day in &forecast {
-                .day {
-                    h2 { (day.date.to_string())}
+        form #bet-form .card hx-post="/payout" hx-target="#payout" hx-trigger="input delay:0.5s" {
+            h1 style="grid-area: title" { "Place Your Bets" }
 
-                    ul {
-                        li {
-                            "Min Temperature: "
-                            b { (day.min) }
-                        }
-
-                        li {
-                            "Max Temperature: "
-                            b { (day.max) }
-                        }
-
-                        li {
-                            "Chance of Rain:"
-                            b {
-                                ((day.rain * 100.0).round() as u32)
-                                "%"
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        h1 { "Bet" }
-
-        form hx-post="/" hx-target="#result" hx-trigger="input delay:0.5s" {
-            label {
-                "Date: "
-                select name="day" {
-                    @for day in forecast {
-                        option { (day.date.to_string()) }
-                    }
-                }
-            }
-
-            br;
-
-            label {
-                input type="checkbox" name="rain";
-                "Will it rain?"
-            }
-
-            br;
-
-            label {
-                "Temperature Guess: "
+            label style="grid-area: temperature" {
+                "Temperature: "
+                br;
                 input type="number" name="temperature" value="20";
             }
 
-            br;
+            label style="grid-area: rain" {
+                "Will it rain?"
+                input type="checkbox" name="rain";
+            }
 
-            label x-data="{ value: '0' }" {
-                "Temperature Confidence: "
+            label style="grid-area: confidence" x-data="{ value: '0' }" {
+                "Confidence: "
                 span x-text="value" {}
                 "%"
 
@@ -97,19 +54,20 @@ async fn home() -> Markup {
                 input type="range" name="confidence" min="0" max="100" step="5" value="50" x-model="value";
             }
 
-            br;
-
-            label {
+            label style="grid-area: wager" {
                 "Wager: "
+                br;
                 input type="number" name="wager" min="0" value="10";
             }
 
-            br;
+            p style="grid-area: payout; text-align: right" {
+                "Maximum potential payout: $"
+                span #payout { "0.00" }
+            }
 
-            button type="submit" { "Bet" }
+            button style="grid-area: submit" type="submit" { "Bet" }
         }
 
-        #result {}
     })
 }
 
@@ -131,26 +89,26 @@ impl CalculateInput {
     }
 }
 
-async fn calculate(Form(form): Form<CalculateInput>) -> Markup {
+async fn payout(Form(form): Form<CalculateInput>) -> Markup {
     const MAX_MULTIPLIER: f64 = 10.0;
 
     let payout_multiplier = MAX_MULTIPLIER * form.confidence / 100.0;
 
     let max_payout = payout_multiplier * form.wager;
 
-    html! {
-        p {
-            "Max payout: $"
-            (format!("{max_payout:.2}"))
-        }
-    }
+    html! { (format!("{max_payout:.2}")) }
+}
+
+async fn forecast() -> Markup {
+    render_forecast(-37.814, 144.9633).await
 }
 
 #[tokio::main]
 async fn main() {
     let app = Router::new()
         .route("/", get(home))
-        .route("/", post(calculate))
+        .route("/payout", post(payout))
+        .route("/forecast", get(forecast))
         .fallback_service(ServeDir::new("./static"));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();

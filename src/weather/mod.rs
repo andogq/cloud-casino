@@ -1,6 +1,10 @@
+mod forecast;
+
 use chrono::NaiveDate;
 use reqwest::Url;
 use serde::Deserialize;
+
+pub use forecast::render_forecast;
 
 #[derive(Debug)]
 pub struct Forecast {
