@@ -30,7 +30,9 @@ pub async fn render(user: &User) -> Markup {
         label style="grid-area: wager" {
             "Wager: "
             br;
-            input type="number" name="wager" min="0" max=(user.data.balance) value=(user.data.balance * 0.25);
+            input type="number" name="wager"
+                step="0.01" min="0" max=(user.data.balance)
+                value=(user.data.balance * 0.25);
         }
 
         p style="grid-area: payout; text-align: right" {

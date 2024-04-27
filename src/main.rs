@@ -30,7 +30,7 @@ async fn home(State(ctx): State<Ctx>, user: User) -> Markup {
 
         form #bet-form hx-boost="true" action="/bet" method="post" {
             .payout-preview hx-post="/payout" hx-target="#payout" hx-trigger="input" {
-                (views::forecast::render(ctx.weather_service, MELBOURNE).await)
+                (views::forecast::render(&user, ctx.weather_service, MELBOURNE).await)
 
                 .controls .card {
                     (views::bet_form::render(&user).await)
@@ -113,8 +113,8 @@ async fn place_bet(mut user: User, Form(form): Form<BetForm>) -> Markup {
     })
 }
 
-async fn forecast(State(ctx): State<Ctx>) -> Markup {
-    views::forecast::render(ctx.weather_service, MELBOURNE).await
+async fn forecast(State(ctx): State<Ctx>, user: User) -> Markup {
+    views::forecast::render(&user, ctx.weather_service, MELBOURNE).await
 }
 
 async fn summary(user: User) -> Markup {
