@@ -7,9 +7,12 @@ use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use tower_sessions::Session;
 
+const INITIAL_BALANCE: f64 = 100.0;
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct User {
-    last_request: OffsetDateTime,
+    pub last_request: OffsetDateTime,
+    pub balance: f64,
 }
 
 impl User {
@@ -31,6 +34,7 @@ impl Default for User {
     fn default() -> Self {
         Self {
             last_request: OffsetDateTime::now_utc(),
+            balance: INITIAL_BALANCE,
         }
     }
 }

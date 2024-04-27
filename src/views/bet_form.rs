@@ -1,6 +1,8 @@
 use maud::{html, Markup};
 
-pub async fn render() -> Markup {
+use crate::user::User;
+
+pub async fn render(user: &User) -> Markup {
     html! {
         form #bet-form .card hx-post="/payout" hx-target="#payout" hx-trigger="input delay:0.5s" {
             h1 style="grid-area: title" { "Place Your Bets" }
@@ -29,7 +31,7 @@ pub async fn render() -> Markup {
             label style="grid-area: wager" {
                 "Wager: "
                 br;
-                input type="number" name="wager" min="0" value="10";
+                input type="number" name="wager" min="0" max=(user.balance) value=(user.balance * 0.25);
             }
 
             p style="grid-area: payout; text-align: right" {

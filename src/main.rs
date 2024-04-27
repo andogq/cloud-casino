@@ -24,8 +24,10 @@ const MELBOURNE: Point = Point {
 
 async fn home(State(ctx): State<Ctx>, user: User) -> Markup {
     views::page(html! {
+        (views::app::render(&user).await)
+
         (views::forecast::render(ctx.weather_service, MELBOURNE).await)
-        (views::bet_form::render().await)
+        (views::bet_form::render(&user).await)
     })
 }
 

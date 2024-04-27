@@ -1,5 +1,6 @@
 use maud::{html, Markup};
 
+pub mod app;
 pub mod bet_form;
 pub mod forecast;
 

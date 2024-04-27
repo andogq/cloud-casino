@@ -27,6 +27,8 @@ h1, h2, h3, h4, h5, h6, b {
     padding: var(--size-fluid-3);
     box-shadow: var(--shadow-2);
     background: var(--background-card);
+
+    margin: var(--size-4);
 }
 
 #bet-form {
