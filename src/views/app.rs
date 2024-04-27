@@ -7,7 +7,7 @@ pub async fn render(user: &User) -> Markup {
         .card {
             h1 { "Summary" }
             ul {
-                li { "Balance: " (format!("${:.2}", user.balance))}
+                li { "Balance: " (format!("${:.2}", user.data.balance))}
             }
         }
     }

@@ -31,7 +31,7 @@ h1, h2, h3, h4, h5, h6, b {
     margin: var(--size-4);
 }
 
-#bet-form {
+#bet-form .controls {
     display: grid;
     grid-template-areas:
         "title title"

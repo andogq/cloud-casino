@@ -11,11 +11,13 @@ use axum::{
 use maud::{html, Markup};
 use serde::{Deserialize, Deserializer};
 use sqlx::SqlitePool;
-use time::macros::datetime;
+use time::{macros::datetime, Date, OffsetDateTime};
 use tower_http::services::ServeDir;
 use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
 use user::User;
 use weather::{Point, WeatherService};
+
+use crate::user::Bet;
 
 const MELBOURNE: Point = Point {
     latitude: -37.814,
@@ -26,21 +28,29 @@ async fn home(State(ctx): State<Ctx>, user: User) -> Markup {
     views::page(html! {
         (views::app::render(&user).await)
 
-        (views::forecast::render(ctx.weather_service, MELBOURNE).await)
-        (views::bet_form::render(&user).await)
+        form #bet-form hx-boost="true" action="/bet" method="post" {
+            .payout-preview hx-post="/payout" hx-target="#payout" hx-trigger="input" {
+                (views::forecast::render(ctx.weather_service, MELBOURNE).await)
+
+                .controls .card {
+                    (views::bet_form::render(&user).await)
+                }
+            }
+        }
     })
 }
 
 #[derive(Deserialize)]
-struct CalculateInput {
-    #[serde(default, deserialize_with = "CalculateInput::deserialize_rain")]
+struct BetForm {
+    #[serde(default, deserialize_with = "BetForm::deserialize_rain")]
     rain: bool,
     temperature: f64,
     confidence: f64,
     wager: f64,
+    day: Date,
 }
 
-impl CalculateInput {
+impl BetForm {
     pub fn deserialize_rain<'de, D>(d: D) -> Result<bool, D::Error>
     where
         D: Deserializer<'de>,
@@ -49,18 +59,66 @@ impl CalculateInput {
     }
 }
 
-async fn payout(Form(form): Form<CalculateInput>) -> Markup {
-    const MAX_MULTIPLIER: f64 = 10.0;
+fn calculate_payout(wager: f64, date: Date, confidence: f64) -> f64 {
+    const MAX_MULTIPLIER: f64 = 5.0;
+    const DAY_MULTIPLIER: f64 = 0.2;
+    const RAIN_MULTIPLIER: f64 = 1.25;
 
-    let payout_multiplier = MAX_MULTIPLIER * form.confidence / 100.0;
+    let days_ahead = (date - OffsetDateTime::now_utc().date()).whole_days();
+    let payout_multiplier = (MAX_MULTIPLIER * confidence / 100.0)
+        + (DAY_MULTIPLIER * days_ahead as f64)
+        + RAIN_MULTIPLIER;
 
-    let max_payout = payout_multiplier * form.wager;
+    payout_multiplier * wager
+}
+
+async fn payout(Form(form): Form<BetForm>) -> Markup {
+    let max_payout = calculate_payout(form.wager, form.day, form.confidence);
 
     html! { (format!("{max_payout:.2}")) }
 }
 
+async fn place_bet(mut user: User, Form(form): Form<BetForm>) -> Markup {
+    // Place a bet on the user
+    let bet = Bet {
+        wager: form.wager,
+        rain: form.rain,
+        temperature: form.temperature,
+        confidence: form.confidence,
+        placed: OffsetDateTime::now_utc(),
+        pay_out: None,
+    };
+
+    let previous_bet = user.data.bets.insert(form.day, bet);
+
+    if let Some(previous_bet) = previous_bet {
+        // Restore user's previous balance
+        user.data.balance += previous_bet.wager;
+    } else {
+        // We need to indicate that this is an outstanding bet
+        user.data.outstanding_bets.push(form.day);
+    }
+
+    // Take the money from the user
+    user.data.balance -= form.wager;
+
+    user.update_session().await;
+
+    views::page(html! {
+        (views::app::render(&user).await)
+
+        .card {
+            h1 { "Bet placed" }
+        }
+    })
+}
+
 async fn forecast(State(ctx): State<Ctx>) -> Markup {
     views::forecast::render(ctx.weather_service, MELBOURNE).await
+}
+
+async fn summary(user: User) -> Markup {
+    views::app::render(&user).await
 }
 
 #[derive(Clone)]
@@ -84,6 +142,8 @@ async fn main() {
         .route("/", get(home))
         .route("/payout", post(payout))
         .route("/forecast", get(forecast))
+        .route("/bet", post(place_bet))
+        .route("/summary", get(summary))
         .fallback_service(ServeDir::new("./static"))
         .layer(session_layer)
         .with_state(Ctx {
