@@ -35,8 +35,8 @@ h1, h2, h3, h4, h5, h6, b {
     display: grid;
     grid-template-areas:
         "title title"
-        "temperature rain"
-        "confidence wager"
+        "min max"
+        "rain wager"
         "payout payout"
         "submit submit";
     align-items: center;

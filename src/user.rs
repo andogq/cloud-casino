@@ -12,9 +12,9 @@ use tower_sessions::Session;
 const INITIAL_BALANCE: f64 = 100.0;
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct PayOut {
-    date: OffsetDateTime,
-    amount: f64,
+pub struct Payout {
+    pub date: OffsetDateTime,
+    pub amount: f64,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -25,17 +25,20 @@ pub struct Bet {
     /// Choice of rain outcome.
     pub rain: bool,
 
-    /// Choice of average temperature.
-    pub temperature: f64,
+    /// Minimum of temperature range.
+    pub min: f64,
 
-    /// Confidence interval of temperature.
-    pub confidence: f64,
+    /// Maximum of temperature range.
+    pub max: f64,
+
+    /// The temperature range of the forecast at time of bet.
+    pub forecast_range: f64,
 
     /// Date the bet was placed.
     pub placed: OffsetDateTime,
 
-    /// Pay out Information
-    pub pay_out: Option<PayOut>,
+    /// Payout Information
+    pub payout: Option<Payout>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -54,8 +57,20 @@ impl Default for UserData {
             last_request: OffsetDateTime::now_utc(),
             balance: INITIAL_BALANCE,
 
-            bets: HashMap::new(),
-            outstanding_bets: Vec::new(),
+            // WARN: Temporary
+            bets: HashMap::from_iter([(
+                time::macros::date!(2024 - 01 - 03),
+                Bet {
+                    wager: 100.0,
+                    rain: true,
+                    min: 23.0,
+                    max: 26.0,
+                    forecast_range: 14.0,
+                    placed: time::macros::datetime!(2024-01-01 00:00 UTC),
+                    payout: None,
+                },
+            )]),
+            outstanding_bets: Vec::from_iter([time::macros::date!(2024 - 01 - 03)]),
         }
     }
 }

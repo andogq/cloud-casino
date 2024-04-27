@@ -6,25 +6,21 @@ pub async fn render(user: &User) -> Markup {
     html! {
         h1 style="grid-area: title" { "Place Your Bets" }
 
-        label style="grid-area: temperature" {
-            "Temperature: "
+        label style="grid-area: min" {
+            "Minimum Temperature: "
             br;
-            input type="number" name="temperature" value="20";
+            input type="number" name="min" value="20";
+        }
+
+        label style="grid-area: max" {
+            "Maximum Temperature: "
+            br;
+            input type="number" name="max" value="20";
         }
 
         label style="grid-area: rain" {
             "Will it rain?"
             input type="checkbox" name="rain";
-        }
-
-        label style="grid-area: confidence" x-data="{ value: '0' }" {
-            "Confidence: "
-            span x-text="value" {}
-            "%"
-
-            br;
-
-            input type="range" name="confidence" min="0" max="100" step="5" value="50" x-model="value";
         }
 
         label style="grid-area: wager" {

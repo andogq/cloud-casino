@@ -17,7 +17,7 @@ use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
 use user::User;
 use weather::{Point, WeatherService};
 
-use crate::user::Bet;
+use crate::user::{Bet, Payout};
 
 const MELBOURNE: Point = Point {
     latitude: -37.814,
@@ -44,10 +44,10 @@ async fn home(State(ctx): State<Ctx>, user: User) -> Markup {
 struct BetForm {
     #[serde(default, deserialize_with = "BetForm::deserialize_rain")]
     rain: bool,
-    temperature: f64,
-    confidence: f64,
+    min: f64,
+    max: f64,
     wager: f64,
-    day: Date,
+    date: Date,
 }
 
 impl BetForm {
@@ -59,44 +59,136 @@ impl BetForm {
     }
 }
 
-fn calculate_payout(wager: f64, date: Date, confidence: f64) -> f64 {
-    const MAX_MULTIPLIER: f64 = 5.0;
-    const DAY_MULTIPLIER: f64 = 0.2;
-    const RAIN_MULTIPLIER: f64 = 1.25;
+const MAX_TEMPERATURE_MULTIPLIER: f64 = 5.0;
+const DAY_MULTIPLIER: f64 = 0.2;
+const RAIN_MULTIPLIER: f64 = 1.25;
 
-    let days_ahead = (date - OffsetDateTime::now_utc().date()).whole_days();
-    let payout_multiplier = (MAX_MULTIPLIER * confidence / 100.0)
-        + (DAY_MULTIPLIER * days_ahead as f64)
-        + RAIN_MULTIPLIER;
-
-    payout_multiplier * wager
+fn temperature_multiplier(forecast_range: f64, guess_range: f64) -> f64 {
+    MAX_TEMPERATURE_MULTIPLIER / (guess_range / forecast_range)
 }
 
-async fn payout(Form(form): Form<BetForm>) -> Markup {
-    let max_payout = calculate_payout(form.wager, form.day, form.confidence);
+fn rain_multiplier(correct: bool) -> f64 {
+    if correct {
+        RAIN_MULTIPLIER
+    } else {
+        0.0
+    }
+}
+
+fn day_multiplier(days_ahead: i64) -> f64 {
+    DAY_MULTIPLIER * days_ahead as f64
+}
+
+fn calculate_max_payout(wager: f64, date: Date, forecast: (f64, f64), guess: (f64, f64)) -> f64 {
+    let multiplier = temperature_multiplier(forecast.1 - forecast.0, guess.1 - guess.0)
+        + rain_multiplier(true)
+        + day_multiplier((date - OffsetDateTime::now_utc().date()).whole_days());
+
+    multiplier * wager
+}
+
+async fn payout(State(ctx): State<Ctx>, Form(form): Form<BetForm>) -> Markup {
+    let forecast = ctx
+        .weather_service
+        .get_forecast(MELBOURNE)
+        .await
+        .into_iter()
+        .find(|forecast| forecast.date == form.date)
+        .unwrap();
+
+    let max_payout = calculate_max_payout(
+        form.wager,
+        form.date,
+        (forecast.min, forecast.max),
+        (form.min, form.max),
+    );
 
     html! { (format!("{max_payout:.2}")) }
 }
 
-async fn place_bet(mut user: User, Form(form): Form<BetForm>) -> Markup {
+async fn perform_payout(State(ctx): State<Ctx>, mut user: User) -> Markup {
+    // Get all outstanding bets that have passed
+    let now = OffsetDateTime::now_utc().date();
+
+    let mut total_payout = 0.0;
+
+    let payout_dates = std::mem::take(&mut user.data.outstanding_bets)
+        .into_iter()
+        .filter(|date| date < &&now);
+
+    for date in payout_dates.clone() {
+        let bet = user.data.bets.get_mut(&date).unwrap();
+        let historical = ctx
+            .weather_service
+            .get_historical(MELBOURNE, date)
+            .await
+            .unwrap();
+
+        let mut multiplier = rain_multiplier(bet.rain == historical.rain)
+            + day_multiplier((date - bet.placed.date()).whole_days());
+
+        if bet.min <= historical.temperature && bet.max >= historical.temperature {
+            multiplier += temperature_multiplier(bet.forecast_range, bet.max - bet.min);
+        }
+
+        let payout_amount = bet.wager * multiplier;
+
+        bet.payout = Some(Payout {
+            date: OffsetDateTime::now_utc(),
+            amount: payout_amount,
+        });
+
+        total_payout += payout_amount;
+    }
+
+    user.data.balance += total_payout;
+    user.update_session().await;
+
+    views::page(html! {
+        .card {
+            h1 { "Payout" }
+
+            h2 { "Winnings: " (format!("${total_payout:.2}")) }
+
+            ul {
+                @for date in payout_dates {
+                    li {
+                        (date.to_string()) ": " (format!("${:.2}", user.data.bets.get(&date).unwrap().payout.as_ref().unwrap().amount))
+                    }
+                }
+            }
+        }
+    })
+}
+
+async fn place_bet(State(ctx): State<Ctx>, mut user: User, Form(form): Form<BetForm>) -> Markup {
+    let forecast = ctx
+        .weather_service
+        .get_forecast(MELBOURNE)
+        .await
+        .into_iter()
+        .find(|forecast| forecast.date == form.date)
+        .unwrap();
+
     // Place a bet on the user
     let bet = Bet {
         wager: form.wager,
         rain: form.rain,
-        temperature: form.temperature,
-        confidence: form.confidence,
+        min: form.min,
+        max: form.max,
+        forecast_range: forecast.max - forecast.min,
         placed: OffsetDateTime::now_utc(),
-        pay_out: None,
+        payout: None,
     };
 
-    let previous_bet = user.data.bets.insert(form.day, bet);
+    let previous_bet = user.data.bets.insert(form.date, bet);
 
     if let Some(previous_bet) = previous_bet {
         // Restore user's previous balance
         user.data.balance += previous_bet.wager;
     } else {
         // We need to indicate that this is an outstanding bet
-        user.data.outstanding_bets.push(form.day);
+        user.data.outstanding_bets.push(form.date);
     }
 
     // Take the money from the user
@@ -140,7 +232,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(home))
-        .route("/payout", post(payout))
+        .route("/payout", get(perform_payout).post(payout))
         .route("/forecast", get(forecast))
         .route("/bet", post(place_bet))
         .route("/summary", get(summary))

@@ -11,6 +11,11 @@ pub struct Forecast {
     pub max: f64,
 }
 
+pub struct DayWeather {
+    pub temperature: f64,
+    pub rain: bool,
+}
+
 #[derive(Debug, Clone)]
 pub struct Point {
     pub latitude: f64,

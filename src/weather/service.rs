@@ -5,7 +5,7 @@ use reqwest::Url;
 use serde::Deserialize;
 use time::Date;
 
-use super::{Forecast, Point};
+use super::{DayWeather, Forecast, Point};
 
 #[derive(Clone)]
 pub struct WeatherService {
@@ -62,7 +62,7 @@ impl WeatherService {
             .send()
             .await
             .unwrap()
-            .json::<Response>()
+            .json::<Response<DailyForecast>>()
             .await
             .unwrap()
             .daily;
@@ -84,6 +84,71 @@ impl WeatherService {
 
         forecast
     }
+
+    pub async fn get_historical(&self, location: Point, date: Date) -> Option<DayWeather> {
+        let fixed = location.to_fixed();
+
+        // TODO: Use cache
+
+        let params = [
+            ("latitude", location.latitude.to_string()),
+            ("longitude", location.longitude.to_string()),
+            ("start_date", date.to_string()),
+            ("end_date", date.to_string()),
+            (
+                "daily",
+                ["temperature_2m_mean", "precipitation_sum"].join(","),
+            ),
+            ("timezone", "auto".to_string()),
+        ];
+
+        // First attempt historical API
+        let historical = self
+            .client
+            .get({
+                Url::parse_with_params("https://archive-api.open-meteo.com/v1/archive", &params)
+                    .unwrap()
+                    .to_string()
+            })
+            .send()
+            .await
+            .unwrap()
+            .json::<Response<Historical>>()
+            .await
+            .unwrap()
+            .daily;
+
+        let (temperature, rain) = if let (Some(temperature), Some(rain)) =
+            (historical.temperature[0], historical.rain[0])
+        {
+            (temperature, rain)
+        } else {
+            // Try again with forecast API
+            let forecast = self
+                .client
+                .get({
+                    Url::parse_with_params("https://api.open-meteo.com/v1/forecast", &params)
+                        .unwrap()
+                        .to_string()
+                })
+                .send()
+                .await
+                .unwrap()
+                .json::<Response<Historical>>()
+                .await
+                .unwrap()
+                .daily;
+
+            (forecast.temperature[0]?, forecast.rain[0]?)
+        };
+
+        Some(DayWeather {
+            temperature,
+
+            // Little buffer if there's a tiny amount of rain
+            rain: rain > 0.01,
+        })
+    }
 }
 
 #[derive(Deserialize)]
@@ -102,6 +167,15 @@ struct DailyForecast {
 }
 
 #[derive(Deserialize)]
-struct Response {
-    daily: DailyForecast,
+struct Historical {
+    #[serde(rename = "temperature_2m_mean")]
+    temperature: Vec<Option<f64>>,
+
+    #[serde(rename = "precipitation_sum")]
+    rain: Vec<Option<f64>>,
+}
+
+#[derive(Deserialize)]
+struct Response<T> {
+    daily: T,
 }

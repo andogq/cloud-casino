@@ -25,7 +25,7 @@ pub async fn render(user: &User, service: WeatherService, location: Point) -> Ma
                         p.temperature { (day.min) "°C / " (day.max) "°C" }
                         p.rain { ((day.rain * 100.0).round() as isize) "% rain" }
 
-                        input type="radio" name="day" value=(day.date);
+                        input type="radio" name="date" value=(day.date);
                     }
                 }
             }
