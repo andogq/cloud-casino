@@ -233,6 +233,8 @@ async fn main() {
         .expect("`PORT` environment variable must contain a valid port")
         .parse::<u16>()
         .expect("provided port must be between 1 and 65535");
+    let static_dir = env::var("STATIC_DIR")
+        .expect("`STATIC_DIR` environment variable must be path to static directory");
 
     // DB
     let pool = SqlitePool::connect(&connection_string).await.unwrap();
@@ -251,14 +253,14 @@ async fn main() {
         .route("/forecast", get(forecast))
         .route("/bet", post(place_bet))
         .route("/summary", get(summary))
-        .fallback_service(ServeDir::new("./static"))
+        .fallback_service(ServeDir::new(&static_dir))
         .layer(session_layer)
         .with_state(Ctx {
             db: pool,
             weather_service: WeatherService::new(),
         });
 
-    println!("starting server on port {port}");
+    println!("starting server on port {port}, serving files from {static_dir}");
 
     let listener = tokio::net::TcpListener::bind((Ipv4Addr::UNSPECIFIED, port))
         .await
