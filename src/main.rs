@@ -3,6 +3,11 @@ mod user;
 mod views;
 mod weather;
 
+use std::{
+    env,
+    net::{IpAddr, Ipv4Addr},
+};
+
 use axum::{
     extract::State,
     routing::{get, post},
@@ -14,6 +19,7 @@ use sqlx::SqlitePool;
 use time::{macros::datetime, Date, OffsetDateTime};
 use tower_http::services::ServeDir;
 use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
+use tower_sessions_sqlx_store::SqliteStore;
 use user::User;
 use weather::{Point, WeatherService};
 
@@ -221,12 +227,21 @@ pub struct Ctx {
 
 #[tokio::main]
 async fn main() {
+    let connection_string = env::var("DATABASE_URL")
+        .expect("`DATABASE_URL` environment variable must contain a connection string");
+    let port = env::var("PORT")
+        .expect("`PORT` environment variable must contain a valid port")
+        .parse::<u16>()
+        .expect("provided port must be between 1 and 65535");
+
     // DB
-    let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+    let pool = SqlitePool::connect(&connection_string).await.unwrap();
     // db::initialise(&pool).await;
 
     // Set up sessions
-    let session_store = MemoryStore::default();
+    let session_store = SqliteStore::new(pool.clone());
+    session_store.migrate().await.unwrap();
+
     let session_layer = SessionManagerLayer::new(session_store)
         .with_expiry(Expiry::AtDateTime(datetime!(2099 - 01 - 01 0:00 UTC)));
 
@@ -243,6 +258,10 @@ async fn main() {
             weather_service: WeatherService::new(),
         });
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    println!("starting server on port {port}");
+
+    let listener = tokio::net::TcpListener::bind((Ipv4Addr::UNSPECIFIED, port))
+        .await
+        .unwrap();
     axum::serve(listener, app).await.unwrap();
 }
