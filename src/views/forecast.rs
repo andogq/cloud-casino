@@ -1,9 +1,9 @@
 use maud::{html, Markup};
 use time::macros::format_description;
 
-use super::{Point, WeatherService};
+use crate::weather::{Point, WeatherService};
 
-pub async fn render_forecast(service: WeatherService, location: Point) -> Markup {
+pub async fn render(service: WeatherService, location: Point) -> Markup {
     let forecast = service.get_forecast(location).await;
 
     html! {

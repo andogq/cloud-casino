@@ -1,7 +1,5 @@
-mod forecast;
 mod service;
 
-pub use forecast::render_forecast;
 pub use service::WeatherService;
 use time::Date;
 

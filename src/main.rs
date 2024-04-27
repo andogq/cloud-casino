@@ -1,134 +1,31 @@
 mod db;
+mod user;
+mod views;
 mod weather;
 
 use axum::{
-    async_trait,
-    extract::{FromRequestParts, State},
-    http::request::Parts,
+    extract::State,
     routing::{get, post},
     Form, Router,
 };
 use maud::{html, Markup};
-use reqwest::StatusCode;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer};
 use sqlx::SqlitePool;
-use time::{macros::datetime, OffsetDateTime};
+use time::macros::datetime;
 use tower_http::services::ServeDir;
-use tower_sessions::{Expiry, MemoryStore, Session, SessionManagerLayer};
+use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
+use user::User;
 use weather::{Point, WeatherService};
-
-use crate::weather::render_forecast;
 
 const MELBOURNE: Point = Point {
     latitude: -37.814,
     longitude: 144.9633,
 };
 
-#[derive(Clone, Serialize, Deserialize)]
-pub struct User {
-    last_request: OffsetDateTime,
-}
-
-impl User {
-    const SESSION_KEY: &'static str = "user.data";
-
-    pub async fn from_session(session: &Session) -> Option<Self> {
-        session.get::<Self>(Self::SESSION_KEY).await.unwrap()
-    }
-
-    pub async fn update_session(&self, session: &Session) {
-        session
-            .insert(Self::SESSION_KEY, self.clone())
-            .await
-            .unwrap();
-    }
-}
-
-impl Default for User {
-    fn default() -> Self {
-        Self {
-            last_request: OffsetDateTime::now_utc(),
-        }
-    }
-}
-
-#[async_trait]
-impl<S> FromRequestParts<S> for User
-where
-    S: Send + Sync,
-{
-    type Rejection = (StatusCode, &'static str);
-
-    /// Perform the extraction.
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let session = Session::from_request_parts(parts, state).await?;
-
-        let mut user = Self::from_session(&session).await.unwrap_or_default();
-        user.last_request = OffsetDateTime::now_utc();
-        user.update_session(&session).await;
-
-        Ok(user)
-    }
-}
-
-fn page(body: Markup) -> Markup {
-    html! {
-        (maud::DOCTYPE)
-        html {
-            head {
-                link rel="stylesheet" type="text/css" href="/main.css";
-
-                script defer src="//unpkg.com/alpinejs" {}
-                script defer src="//unpkg.com/htmx.org" {}
-            }
-
-            body { (body) }
-        }
-    }
-}
-
 async fn home(State(ctx): State<Ctx>, user: User) -> Markup {
-    page(html! {
-        (render_forecast(ctx.weather_service, MELBOURNE).await)
-
-        form #bet-form .card hx-post="/payout" hx-target="#payout" hx-trigger="input delay:0.5s" {
-            h1 style="grid-area: title" { "Place Your Bets" }
-
-            label style="grid-area: temperature" {
-                "Temperature: "
-                br;
-                input type="number" name="temperature" value="20";
-            }
-
-            label style="grid-area: rain" {
-                "Will it rain?"
-                input type="checkbox" name="rain";
-            }
-
-            label style="grid-area: confidence" x-data="{ value: '0' }" {
-                "Confidence: "
-                span x-text="value" {}
-                "%"
-
-                br;
-
-                input type="range" name="confidence" min="0" max="100" step="5" value="50" x-model="value";
-            }
-
-            label style="grid-area: wager" {
-                "Wager: "
-                br;
-                input type="number" name="wager" min="0" value="10";
-            }
-
-            p style="grid-area: payout; text-align: right" {
-                "Maximum potential payout: $"
-                span #payout { "0.00" }
-            }
-
-            button style="grid-area: submit" type="submit" { "Bet" }
-        }
-
+    views::page(html! {
+        (views::forecast::render(ctx.weather_service, MELBOURNE).await)
+        (views::bet_form::render().await)
     })
 }
 
@@ -161,7 +58,7 @@ async fn payout(Form(form): Form<CalculateInput>) -> Markup {
 }
 
 async fn forecast(State(ctx): State<Ctx>) -> Markup {
-    render_forecast(ctx.weather_service, MELBOURNE).await
+    views::forecast::render(ctx.weather_service, MELBOURNE).await
 }
 
 #[derive(Clone)]
