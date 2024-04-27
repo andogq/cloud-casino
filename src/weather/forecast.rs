@@ -1,8 +1,9 @@
 use maud::{html, Markup};
+use time::macros::format_description;
 
-use super::{Point, Service};
+use super::{Point, WeatherService};
 
-pub async fn render_forecast(service: Service, location: Point) -> Markup {
+pub async fn render_forecast(service: WeatherService, location: Point) -> Markup {
     let forecast = service.get_forecast(location).await;
 
     html! {
@@ -14,7 +15,7 @@ pub async fn render_forecast(service: Service, location: Point) -> Markup {
             div style="display: flex; flex-direction: row; justify-content: space-between;" {
                 @for day in forecast {
                     label .day {
-                        p.date { (day.date.format("%d/%m")) }
+                        p.date { (day.date.format(format_description!("[day]/[month]")).unwrap()) }
                         p.temperature { (day.min) "°C / " (day.max) "°C" }
                         p.rain { ((day.rain * 100.0).round() as isize) "% rain" }
 

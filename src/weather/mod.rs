@@ -1,14 +1,13 @@
 mod forecast;
 mod service;
 
-use chrono::NaiveDate;
-
 pub use forecast::render_forecast;
-pub use service::Service;
+pub use service::WeatherService;
+use time::Date;
 
 #[derive(Debug, Clone)]
 pub struct Forecast {
-    pub date: NaiveDate,
+    pub date: Date,
     pub rain: f64,
     pub min: f64,
     pub max: f64,

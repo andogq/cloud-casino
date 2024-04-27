@@ -1,19 +1,19 @@
 use std::time::Duration;
 
-use chrono::NaiveDate;
 use moka::future::Cache;
 use reqwest::Url;
 use serde::Deserialize;
+use time::Date;
 
 use super::{Forecast, Point};
 
 #[derive(Clone)]
-pub struct Service {
+pub struct WeatherService {
     client: reqwest::Client,
     cache: Cache<(String, String), Vec<Forecast>>,
 }
 
-impl Service {
+impl WeatherService {
     pub fn new() -> Self {
         Self {
             client: reqwest::Client::new(),
@@ -89,7 +89,7 @@ impl Service {
 #[derive(Deserialize)]
 struct DailyForecast {
     #[serde(rename = "time")]
-    date: Vec<NaiveDate>,
+    date: Vec<Date>,
 
     #[serde(rename = "temperature_2m_max")]
     max: Vec<f64>,

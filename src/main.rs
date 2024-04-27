@@ -1,14 +1,21 @@
+mod db;
 mod weather;
 
 use axum::{
-    extract::State,
+    async_trait,
+    extract::{FromRequestParts, State},
+    http::request::Parts,
     routing::{get, post},
     Form, Router,
 };
 use maud::{html, Markup};
-use serde::{Deserialize, Deserializer};
+use reqwest::StatusCode;
+use serde::{Deserialize, Deserializer, Serialize};
+use sqlx::SqlitePool;
+use time::{macros::datetime, OffsetDateTime};
 use tower_http::services::ServeDir;
-use weather::{Point, Service};
+use tower_sessions::{Expiry, MemoryStore, Session, SessionManagerLayer};
+use weather::{Point, WeatherService};
 
 use crate::weather::render_forecast;
 
@@ -16,6 +23,53 @@ const MELBOURNE: Point = Point {
     latitude: -37.814,
     longitude: 144.9633,
 };
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct User {
+    last_request: OffsetDateTime,
+}
+
+impl User {
+    const SESSION_KEY: &'static str = "user.data";
+
+    pub async fn from_session(session: &Session) -> Option<Self> {
+        session.get::<Self>(Self::SESSION_KEY).await.unwrap()
+    }
+
+    pub async fn update_session(&self, session: &Session) {
+        session
+            .insert(Self::SESSION_KEY, self.clone())
+            .await
+            .unwrap();
+    }
+}
+
+impl Default for User {
+    fn default() -> Self {
+        Self {
+            last_request: OffsetDateTime::now_utc(),
+        }
+    }
+}
+
+#[async_trait]
+impl<S> FromRequestParts<S> for User
+where
+    S: Send + Sync,
+{
+    type Rejection = (StatusCode, &'static str);
+
+    /// Perform the extraction.
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let session = Session::from_request_parts(parts, state).await?;
+
+        let mut user = Self::from_session(&session).await.unwrap_or_default();
+        user.last_request = OffsetDateTime::now_utc();
+        user.update_session(&session).await;
+
+        Ok(user)
+    }
+}
 
 fn page(body: Markup) -> Markup {
     html! {
@@ -33,9 +87,9 @@ fn page(body: Markup) -> Markup {
     }
 }
 
-async fn home(State(service): State<Service>) -> Markup {
+async fn home(State(ctx): State<Ctx>, user: User) -> Markup {
     page(html! {
-        (render_forecast(service, MELBOURNE).await)
+        (render_forecast(ctx.weather_service, MELBOURNE).await)
 
         form #bet-form .card hx-post="/payout" hx-target="#payout" hx-trigger="input delay:0.5s" {
             h1 style="grid-area: title" { "Place Your Bets" }
@@ -106,18 +160,37 @@ async fn payout(Form(form): Form<CalculateInput>) -> Markup {
     html! { (format!("{max_payout:.2}")) }
 }
 
-async fn forecast(State(service): State<Service>) -> Markup {
-    render_forecast(service, MELBOURNE).await
+async fn forecast(State(ctx): State<Ctx>) -> Markup {
+    render_forecast(ctx.weather_service, MELBOURNE).await
+}
+
+#[derive(Clone)]
+pub struct Ctx {
+    pub db: SqlitePool,
+    pub weather_service: WeatherService,
 }
 
 #[tokio::main]
 async fn main() {
+    // DB
+    let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+    // db::initialise(&pool).await;
+
+    // Set up sessions
+    let session_store = MemoryStore::default();
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_expiry(Expiry::AtDateTime(datetime!(2099 - 01 - 01 0:00 UTC)));
+
     let app = Router::new()
         .route("/", get(home))
         .route("/payout", post(payout))
         .route("/forecast", get(forecast))
         .fallback_service(ServeDir::new("./static"))
-        .with_state(Service::new());
+        .layer(session_layer)
+        .with_state(Ctx {
+            db: pool,
+            weather_service: WeatherService::new(),
+        });
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
