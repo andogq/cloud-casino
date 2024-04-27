@@ -65,7 +65,7 @@ USER appuser
 COPY --from=build /bin/server /bin/
 
 # Copy static files into the image
-COPY ./static $STATIC_DIR
+COPY ./static /app/static
 
 # What the container should run when it is started.
 CMD ["/bin/server"]
