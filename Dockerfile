@@ -59,6 +59,11 @@ RUN adduser \
     --no-create-home \
     --uid "${UID}" \
     appuser
+
+# Set up directory for database
+RUN mkdir -p /app/data && chown -R ${UID} /app/data
+
+# Switch to unprivileged user
 USER appuser
 
 # Copy the executable from the "build" stage.

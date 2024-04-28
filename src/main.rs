@@ -3,10 +3,7 @@ mod user;
 mod views;
 mod weather;
 
-use std::{
-    env,
-    net::{IpAddr, Ipv4Addr},
-};
+use std::{env, net::Ipv4Addr, str::FromStr};
 
 use axum::{
     extract::State,
@@ -15,10 +12,10 @@ use axum::{
 };
 use maud::{html, Markup};
 use serde::{Deserialize, Deserializer};
-use sqlx::SqlitePool;
+use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 use time::{macros::datetime, Date, OffsetDateTime};
 use tower_http::services::ServeDir;
-use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
+use tower_sessions::{Expiry, SessionManagerLayer};
 use tower_sessions_sqlx_store::SqliteStore;
 use user::User;
 use weather::{Point, WeatherService};
@@ -236,8 +233,16 @@ async fn main() {
     let static_dir = env::var("STATIC_DIR")
         .expect("`STATIC_DIR` environment variable must be path to static directory");
 
+    println!("starting server on port {port}, serving files from {static_dir}, db at {connection_string}");
+
     // DB
-    let pool = SqlitePool::connect(&connection_string).await.unwrap();
+    let pool = SqlitePool::connect_with(
+        SqliteConnectOptions::from_str(&connection_string)
+            .unwrap()
+            .create_if_missing(true),
+    )
+    .await
+    .unwrap();
     // db::initialise(&pool).await;
 
     // Set up sessions
@@ -259,8 +264,6 @@ async fn main() {
             db: pool,
             weather_service: WeatherService::new(),
         });
-
-    println!("starting server on port {port}, serving files from {static_dir}");
 
     let listener = tokio::net::TcpListener::bind((Ipv4Addr::UNSPECIFIED, port))
         .await
