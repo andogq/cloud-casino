@@ -235,6 +235,7 @@ main {
     grid-template-areas:
         "forecast forecast"
         "bet-form payout";
+    column-gap: var(--size-1);
     
     & > #forecast {
         grid-area: forecast;
