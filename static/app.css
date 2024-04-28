@@ -1,0 +1,298 @@
+:root {
+    --theme: var(--blue-9);
+    --radius: var(--radius-3);
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+}
+
+.lucide {
+    height: 1em;
+    width: 1em;
+}
+
+#rain-guess {
+    font-size: var(--size-9);
+    color: var(--text-2);
+    
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    
+    padding: var(--size-3);
+    
+    & input {
+        display: none;
+    }
+    
+    & > label {
+        display: block;
+        padding: var(--size-2);
+        border-radius: var(--radius-3);
+        
+        &:has(input:checked) {
+            background: var(--theme);
+            color: var(--surface-1);
+        }
+    }
+}
+
+#temperatures {
+    display: flex;
+    flex-direction: row;
+    gap: var(--size-4);
+}
+
+#bet-button {
+    align-self: flex-end;
+}
+
+.pill {
+    background: var(--surface-1);
+    border-radius: var(--radius);
+    
+    padding: var(--size-2);
+}
+
+.icon-input {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    
+    font-size: var(--font-size-4);
+    
+    &:has(input:focus) {
+        background: var(--blue-0);
+    }
+    
+    & > .lucide {
+        flex-grow: 0;
+        flex-shrink: 0;
+        
+        color: var(--theme);
+    }
+    
+    & > input {
+        flex-basis: 0;
+        flex-grow: 1;
+        flex-shrink: 0;
+        
+        width: 100%;
+        padding: 0;
+        
+        background: none;
+        
+        text-align: right;
+        font-weight: bold;
+        
+        &:focus {
+            outline: none;
+        }
+    }
+}
+
+button {
+    font-size: var(--font-size-5);
+    font-weight: bold;
+    
+    color: var(--surface-1);
+    background: var(--theme);
+    border-radius: var(--radius);
+    
+    width: fit-content;
+    padding: var(--size-1) var(--size-3);
+}
+
+.arrow::after {
+    content: "↗";
+    font-size: 0.7em;
+    vertical-align: top;
+}
+
+/* ----------------------- */
+.weather-tile {
+    height: var(--size-12);
+    aspect-ratio: 1;
+    
+    border-radius: var(--radius);
+    background: linear-gradient(315deg, var(--pink-2) 0%, var(--theme) 100%);
+    
+    color: white;
+    
+    padding: var(--size-3);
+    
+    display: grid;
+    grid-template-rows: auto 1fr 1fr;
+    grid-template-areas:
+        "day icon"
+        "day rain"
+        "day temperature";
+    gap: var(--size-1);
+    
+    & > .day {
+        grid-area: day;
+        align-self: center;
+        
+        font-weight: bold;
+    }
+    
+    & > .icon {
+        width: fit-content;
+        aspect-ratio: 1;
+        padding: var(--size-1);
+        
+        justify-self: flex-end;
+        
+        border-radius: var(--radius);
+        
+        font-size: var(--size-9);
+        
+    }
+    
+    & > .line {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: var(--size-1);
+        
+        justify-self: flex-end;
+        
+        & > p {
+            font-weight: bold;
+            font-size: var(--font-size-0);
+        }
+        
+        & > .lucide {
+            font-size: var(--font-size-3);
+        }
+    }
+}
+
+.invert {
+    mix-blend-mode: screen;
+    color: black;
+    background: white;
+}
+
+/* ----------------- */
+main {
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+}
+
+#head {
+    position: relative;
+    
+    flex-grow: 1;
+    
+    background: linear-gradient(180deg, var(--theme) 0%, var(--blue-2) 100%);
+    
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    
+    &::after {
+        content: "";
+        
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        
+        background: var(--surface-1);
+        
+        height: var(--radius);
+        border-top-left-radius: var(--radius);
+        border-top-right-radius: var(--radius);
+    }
+    
+    & > #balance {
+        font-weight: var(--font-weight-6);
+        color: var(--surface-1);
+    }
+}
+
+#draw {
+    background: var(--surface-1);
+    
+    height: 600px;
+    
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    grid-template-areas:
+        "forecast forecast"
+        "bet-form payout";
+    
+    & > #forecast {
+        grid-area: forecast;
+        
+        & > h2 {
+            margin-left: var(--size-3);
+            font-size: var(--font-size-3);
+        }
+        
+        & > .days {
+            display: flex;
+            flex-direction: row;
+            gap: var(--size-3);
+            
+            padding: var(--size-3);
+            
+            overflow-x: scroll;
+        }
+    }
+}
+
+#draw > .peek {
+    align-self: flex-end;
+    height: fit-content;
+    
+    border-radius: var(--radius);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    
+    display: flex;
+    flex-direction: column;
+    
+    gap: var(--size-4);
+    padding: var(--size-4);
+}
+
+#bet-form {
+    grid-area: bet-form;
+    background: var(--blue-1);
+}
+
+#payout {
+    grid-area: payout;
+    background: var(--blue-2);
+    
+    text-align: center;
+    
+    & > .count {
+        aspect-ratio: 1;
+        
+        background: var(--surface-1);
+        border-radius: var(--radius);
+        color: var(--theme);
+        
+        display: flex;
+        align-content: center;
+        justify-content: center;
+        
+        & > h3 {
+            font-size: var(--font-size-8);
+            line-height: unset;
+        }
+    }
+    
+    & > h2 {
+        font-size: var(--font-size-0);
+        font-weight: var(--font-weight-6);
+    }
+}

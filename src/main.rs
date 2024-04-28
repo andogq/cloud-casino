@@ -1,3 +1,4 @@
+mod app;
 mod db;
 mod user;
 mod views;
@@ -258,6 +259,7 @@ async fn main() {
         .route("/forecast", get(forecast))
         .route("/bet", post(place_bet))
         .route("/summary", get(summary))
+        .nest("/app", app::init())
         .fallback_service(ServeDir::new(&static_dir))
         .layer(session_layer)
         .with_state(Ctx {
