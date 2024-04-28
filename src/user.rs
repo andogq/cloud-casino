@@ -77,7 +77,7 @@ impl Default for UserData {
 
 pub struct User {
     pub data: UserData,
-    session: Session,
+    pub session: Session,
 }
 
 impl User {

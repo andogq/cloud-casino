@@ -1,4 +1,5 @@
 use maud::{html, Markup};
+use serde::Deserialize;
 use time::Date;
 
 fn input(
@@ -19,6 +20,7 @@ fn input(
     }
 }
 
+#[derive(Debug, Deserialize)]
 pub struct BetFormValue {
     pub rain: bool,
     pub min_temp: f64,
@@ -41,9 +43,9 @@ pub fn render(date: Date, prefill: Option<BetFormValue>) -> Markup {
             hx-boost="true" hx-disabled-elt="this"
         {
             #rain-guess .pill {
-                @for (icon, value) in [("cloud-rain", true), ("sun", false)] {
+                @for (icon, state) in [("cloud-rain", true), ("sun", false)] {
                     label {
-                        input name="rain" value=(value) type="radio";
+                        input name="rain" value=(state) type="radio" checked[state == value.rain];
                         i data-lucide=(icon) {}
                     }
                 }

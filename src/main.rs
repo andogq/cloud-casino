@@ -1,4 +1,5 @@
 mod app;
+mod bet;
 mod db;
 mod payout;
 mod user;
@@ -252,6 +253,7 @@ async fn main() {
     session_store.migrate().await.unwrap();
 
     let session_layer = SessionManagerLayer::new(session_store)
+        .with_secure(false) // WARN: Just for development
         .with_expiry(Expiry::AtDateTime(datetime!(2099 - 01 - 01 0:00 UTC)));
 
     let app = Router::new()

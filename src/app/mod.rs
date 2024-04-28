@@ -4,7 +4,7 @@ use axum::{
     extract::{Path, State},
     response::Redirect,
     routing::{get, post},
-    Router,
+    Form, Router,
 };
 use maud::Markup;
 use time::Date;
@@ -31,7 +31,23 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
     ))
 }
 
-async fn place_bet(Path(date): Path<Date>) -> Redirect {
+async fn place_bet(
+    State(ctx): State<Ctx>,
+    user: User,
+    Path(date): Path<Date>,
+    Form(bet_form): Form<BetFormValue>,
+) -> Redirect {
+    crate::bet::place_bet(
+        ctx,
+        user,
+        date,
+        bet_form.min_temp,
+        bet_form.max_temp,
+        bet_form.rain,
+        bet_form.wager,
+    )
+    .await;
+
     Redirect::to("/app")
 }
 
