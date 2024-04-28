@@ -1,8 +1,8 @@
 use maud::{html, Markup};
 
-use crate::app::views;
+use crate::{app::views, weather::Forecast};
 
-use super::{bet_form::BetFormValue, forecast::Forecast};
+use super::bet_form::BetFormValue;
 
 pub fn render(
     balance: f64,

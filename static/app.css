@@ -14,7 +14,7 @@ html, body {
 }
 
 #rain-guess {
-    font-size: var(--size-9);
+    font-size: var(--size-8);
     color: var(--text-2);
     
     display: flex;
@@ -94,8 +94,8 @@ html, body {
 }
 
 button {
-    font-size: var(--font-size-5);
-    font-weight: bold;
+    font-size: var(--font-size-3);
+    font-weight: var(--font-weight-5);
     
     color: var(--surface-1);
     background: var(--theme);
@@ -113,7 +113,7 @@ button {
 
 /* ----------------------- */
 .weather-tile {
-    height: var(--size-12);
+    height: var(--size-11);
     aspect-ratio: 1;
     
     border-radius: var(--radius);
@@ -124,11 +124,11 @@ button {
     padding: var(--size-3);
     
     display: grid;
-    grid-template-rows: auto 1fr 1fr;
+    grid-template-rows: 1fr auto auto;
     grid-template-areas:
         "day icon"
-        "day rain"
-        "day temperature";
+        "rain rain"
+        "temperature temperature";
     gap: var(--size-1);
     
     & > .day {
@@ -149,8 +149,16 @@ button {
         
         border-radius: var(--radius);
         
-        font-size: var(--size-9);
+        font-size: var(--size-7);
         
+    }
+
+    & > .rain {
+        grid-area: rain;
+    }
+
+    & > .temperature {
+        grid-area: temperature;
     }
     
     & > .line {
@@ -222,8 +230,6 @@ main {
 #draw {
     background: var(--surface-1);
     
-    height: 600px;
-    
     display: grid;
     grid-template-columns: 2fr 1fr;
     grid-template-areas:
@@ -232,11 +238,6 @@ main {
     
     & > #forecast {
         grid-area: forecast;
-        
-        & > h2 {
-            margin-left: var(--size-3);
-            font-size: var(--font-size-3);
-        }
         
         & > .days {
             display: flex;

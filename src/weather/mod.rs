@@ -9,6 +9,7 @@ pub struct Forecast {
     pub rain: f64,
     pub min: f64,
     pub max: f64,
+    pub wmo_code: usize,
 }
 
 pub struct DayWeather {

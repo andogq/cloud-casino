@@ -36,6 +36,7 @@ impl WeatherService {
             max,
             min,
             rain,
+            wmo_code,
         } = self
             .client
             .get({
@@ -47,6 +48,7 @@ impl WeatherService {
                         (
                             "daily",
                             [
+                                "weather_code",
                                 "temperature_2m_max",
                                 "temperature_2m_min",
                                 "precipitation_probability_mean",
@@ -72,11 +74,13 @@ impl WeatherService {
             .zip(max)
             .zip(min)
             .zip(rain.into_iter().map(|rain| rain / 100.0))
-            .map(|(((date, max), min), rain)| Forecast {
+            .zip(wmo_code)
+            .map(|((((date, max), min), rain), wmo_code)| Forecast {
                 date,
                 rain,
                 min,
                 max,
+                wmo_code,
             })
             .collect::<Vec<_>>();
 
@@ -164,6 +168,9 @@ struct DailyForecast {
 
     #[serde(rename = "precipitation_probability_mean")]
     rain: Vec<f64>,
+
+    #[serde(rename = "weather_code")]
+    wmo_code: Vec<usize>,
 }
 
 #[derive(Deserialize)]
