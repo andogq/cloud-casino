@@ -3,15 +3,17 @@ mod views;
 use axum::{extract::State, routing::get, Router};
 use maud::Markup;
 
-use crate::{Ctx, MELBOURNE};
+use crate::{user::User, Ctx, MELBOURNE};
 
 use self::views::bet_form::BetFormValue;
 
-async fn index(State(ctx): State<Ctx>) -> Markup {
+async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
+    let balance = user.data.balance;
     let forecast = ctx.weather_service.get_forecast(MELBOURNE).await;
+    let ready_payouts = crate::payout::count_ready(&user);
 
     views::page(views::shell::render(
-        183.40,
+        balance,
         forecast,
         Some(BetFormValue {
             rain: true,
@@ -19,7 +21,7 @@ async fn index(State(ctx): State<Ctx>) -> Markup {
             max_temp: 20.0,
             wager: 61.50,
         }),
-        1,
+        ready_payouts,
     ))
 }
 

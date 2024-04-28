@@ -1,5 +1,6 @@
 mod app;
 mod db;
+mod payout;
 mod user;
 mod views;
 mod weather;
