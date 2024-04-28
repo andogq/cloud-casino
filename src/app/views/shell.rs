@@ -2,19 +2,24 @@ use maud::{html, Markup};
 
 use crate::app::views;
 
-pub fn render() -> Markup {
-    let balance = 183.40;
+use super::{bet_form::BetFormValue, forecast::Forecast};
 
+pub fn render(
+    balance: f64,
+    forecast: Vec<Forecast>,
+    prefill: Option<BetFormValue>,
+    payout_count: usize,
+) -> Markup {
     html! {
         main {
             (views::head::render(balance))
 
             #draw {
-                (views::forecast::render())
+                (views::forecast::render(forecast))
 
-                (views::bet_form::render())
+                (views::bet_form::render(prefill))
 
-                (views::payout::render_pill())
+                (views::payout::render_pill(payout_count))
             }
         }
     }
