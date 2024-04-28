@@ -1,32 +1,20 @@
 @import "https://unpkg.com/open-props";
+@import "https://unpkg.com/open-props/normalize.min.css";
+@import "https://unpkg.com/open-props/buttons.min.css";
 
-html, body {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-
-    --text-1: var(--gray-11);
-    --text-2: var(--gray-9);
-    --background-page: var(--gray-3);
-    --background-card: var(--gray-0);
-
-    /* @media (--OSdark) { */
-    /*     --text-1: var(--gray-1); */
-    /*     --text-2: var(--gray-2); */
-    /* } */
-
-    color: var(--text-1);
-    background: var(--background-page);
+* {
+    box-sizing: border-box;
 }
 
-h1, h2, h3, h4, h5, h6, b {
-    margin-bottom: var(--size-2);
-    color: var(--text-2);
+html, body {
+    background: var(--surface-2);
 }
 
 .card {
     border-radius: var(--radius-2);
     padding: var(--size-fluid-3);
     box-shadow: var(--shadow-2);
-    background: var(--background-card);
+    background: var(--surface-1);
 
     margin: var(--size-4);
 }
