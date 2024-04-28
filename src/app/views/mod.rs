@@ -17,12 +17,16 @@ pub fn page(body: Markup) -> Markup {
 
                 script defer src="//unpkg.com/alpinejs" {}
                 script defer src="//unpkg.com/htmx.org" {}
-                script defer src="//unpkg.com/lucide" onload="lucide.createIcons()" {}
+                script defer src="//unpkg.com/lucide" {}
 
                 meta name="viewport" content="width=device-width, initial-scale=1.0";
+
+                script defer src="/main.js" {}
             }
 
-            body { (body) }
+            body {
+                (body)
+            }
         }
     }
 }

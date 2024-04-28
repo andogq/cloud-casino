@@ -1,4 +1,5 @@
 use maud::{html, Markup};
+use time::OffsetDateTime;
 
 use crate::{app::views, weather::Forecast};
 
@@ -17,7 +18,7 @@ pub fn render(
             #draw {
                 (views::forecast::render(forecast))
 
-                (views::bet_form::render(prefill))
+                (views::bet_form::render(OffsetDateTime::now_utc().date(), prefill))
 
                 (views::payout::render_pill(payout_count))
             }

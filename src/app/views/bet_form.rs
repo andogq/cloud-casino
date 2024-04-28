@@ -1,13 +1,19 @@
 use maud::{html, Markup};
+use time::Date;
 
-fn input(name: &str, icon: &str, value: &str, after: Option<&str>) -> Markup {
+fn input(
+    name: impl AsRef<str>,
+    icon: impl AsRef<str>,
+    value: impl AsRef<str>,
+    after: Option<impl AsRef<str>>,
+) -> Markup {
     html! {
         label .icon-input .pill {
-            i data-lucide=(icon) {}
-            input type="text" name=(name) value=(value);
+            i data-lucide=(icon.as_ref()) {}
+            input type="text" name=(name.as_ref()) value=(value.as_ref());
 
             @if let Some(after) = after {
-                span { (after) }
+                span { (after.as_ref()) }
             }
         }
     }
@@ -20,9 +26,20 @@ pub struct BetFormValue {
     pub wager: f64,
 }
 
-pub fn render(prefill: Option<BetFormValue>) -> Markup {
+pub fn render(date: Date, prefill: Option<BetFormValue>) -> Markup {
+    // If no prefill is provided, just use some default values
+    let value = prefill.unwrap_or_else(|| BetFormValue {
+        rain: false,
+        min_temp: 18.0,
+        max_temp: 25.0,
+        wager: 10.0,
+    });
+
     html! {
-        #bet-form .peek {
+        form #bet-form .peek
+            action=(format!("/app/bet/{date}")) method="post"
+            hx-boost="true" hx-disabled-elt="this"
+        {
             #rain-guess .pill {
                 @for (icon, value) in [("cloud-rain", true), ("sun", false)] {
                     label {
@@ -33,13 +50,13 @@ pub fn render(prefill: Option<BetFormValue>) -> Markup {
             }
 
             #temperatures {
-                (input("min_temp", "thermometer-snowflake", &prefill.as_ref().map(|value| value.min_temp.to_string()).unwrap_or_default(), Some("°")))
-                (input("max_temp", "thermometer-sun", &prefill.as_ref().map(|value| value.max_temp.to_string()).unwrap_or_default(), Some("°")))
+                (input("min_temp", "thermometer-snowflake", value.min_temp.to_string(), Some("°")))
+                (input("max_temp", "thermometer-sun", value.max_temp.to_string(), Some("°")))
             }
 
-            (input("wager", "badge-dollar-sign", &prefill.as_ref().map(|value| value.wager.to_string()).unwrap_or_default(), None))
+            (input("wager", "badge-dollar-sign", value.wager.to_string(), Option::<&str>::None))
 
-            button #bet-button .arrow { "bet" }
+            button type="submit" #bet-button .arrow { "bet" }
         }
     }
 }

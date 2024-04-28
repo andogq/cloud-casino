@@ -1,7 +1,13 @@
 mod views;
 
-use axum::{extract::State, routing::get, Router};
+use axum::{
+    extract::{Path, State},
+    response::Redirect,
+    routing::{get, post},
+    Router,
+};
 use maud::Markup;
+use time::Date;
 
 use crate::{user::User, Ctx, MELBOURNE};
 
@@ -25,6 +31,12 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
     ))
 }
 
+async fn place_bet(Path(date): Path<Date>) -> Redirect {
+    Redirect::to("/app")
+}
+
 pub fn init() -> Router<Ctx> {
-    Router::new().route("/", get(index))
+    Router::new()
+        .route("/", get(index))
+        .route("/bet/:date", post(place_bet))
 }
