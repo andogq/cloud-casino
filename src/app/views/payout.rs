@@ -7,7 +7,7 @@ pub fn render_pill(count: usize) -> Markup {
                 h3 { (count) }
             }
 
-            h2 .arrow {
+            h2 {
                 @if count == 1 {
                     "payout"
                 } @else {

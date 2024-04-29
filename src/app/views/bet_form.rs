@@ -4,18 +4,38 @@ use time::Date;
 
 fn input(
     name: impl AsRef<str>,
+    label: impl AsRef<str>,
     icon: impl AsRef<str>,
     value: impl AsRef<str>,
     after: Option<impl AsRef<str>>,
 ) -> Markup {
     html! {
-        label .icon-input .pill {
-            i data-lucide=(icon.as_ref()) {}
-            input type="text" name=(name.as_ref()) value=(value.as_ref());
+        label .icon-input {
+            p .label { (label.as_ref()) }
 
-            @if let Some(after) = after {
-                span { (after.as_ref()) }
+            .pill {
+                i data-lucide=(icon.as_ref()) {}
+                input type="text" name=(name.as_ref()) value=(value.as_ref());
+
+                @if let Some(after) = after {
+                    span { (after.as_ref()) }
+                }
             }
+        }
+    }
+}
+
+fn rain_button(
+    label: impl AsRef<str>,
+    icon: impl AsRef<str>,
+    value: bool,
+    checked: bool,
+) -> Markup {
+    html! {
+        label {
+            input name="rain" value=(value) type="radio" checked[checked];
+            i data-lucide=(icon.as_ref()) {}
+            span { (label.as_ref()) }
         }
     }
 }
@@ -43,22 +63,18 @@ pub fn render(date: Date, prefill: Option<BetFormValue>) -> Markup {
             hx-boost="true" hx-disabled-elt="this"
         {
             #rain-guess .pill {
-                @for (icon, state) in [("cloud-rain", true), ("sun", false)] {
-                    label {
-                        input name="rain" value=(state) type="radio" checked[state == value.rain];
-                        i data-lucide=(icon) {}
-                    }
-                }
+                (rain_button("sunny", "sun", true, value.rain == true))
+                (rain_button("rainy", "cloud-rain", false, value.rain == false))
             }
 
             #temperatures {
-                (input("min_temp", "thermometer-snowflake", value.min_temp.to_string(), Some("°")))
-                (input("max_temp", "thermometer-sun", value.max_temp.to_string(), Some("°")))
+                (input("min_temp", "min temp?", "thermometer-snowflake", value.min_temp.to_string(), Some("°")))
+                (input("max_temp", "max temp?", "thermometer-sun", value.max_temp.to_string(), Some("°")))
             }
 
-            (input("wager", "badge-dollar-sign", value.wager.to_string(), Option::<&str>::None))
+            (input("wager", "wager?", "badge-dollar-sign", value.wager.to_string(), Option::<&str>::None))
 
-            button type="submit" #bet-button .arrow { "bet" }
+            button type="submit" #bet-button { "place bet" }
         }
     }
 }
