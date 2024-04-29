@@ -133,21 +133,14 @@ button {
     
     & > .day {
         grid-area: day;
-        align-self: center;
         
         font-weight: bold;
 
         text-transform: lowercase;
     }
     
-    & > .icon {
-        width: fit-content;
-        aspect-ratio: 1;
-        padding: var(--size-1);
-        
+    & > .lucide {
         justify-self: flex-end;
-        
-        border-radius: var(--radius);
         
         font-size: var(--size-7);
         
@@ -199,27 +192,12 @@ main {
     
     flex-grow: 1;
     
-    background: linear-gradient(180deg, var(--theme) 0%, var(--blue-2) 100%);
+    background: linear-gradient(180deg, var(--theme) 0%, var(--surface-1) 100%);
     
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    
-    &::after {
-        content: "";
-        
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        
-        background: var(--surface-1);
-        
-        height: var(--radius);
-        border-top-left-radius: var(--radius);
-        border-top-right-radius: var(--radius);
-    }
     
     & > #balance {
         font-weight: var(--font-weight-6);

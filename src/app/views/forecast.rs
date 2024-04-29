@@ -25,9 +25,7 @@ pub fn render(days: Vec<Forecast>) -> Markup {
                     .weather-tile {
                         p .day { (day.date.format(format_description!("[weekday repr:short]")).unwrap()) }
 
-                        .icon .invert {
-                            i data-lucide=(pick_wmo_icon(day.wmo_code)) {}
-                        }
+                        i data-lucide=(pick_wmo_icon(day.wmo_code)) {}
 
                         .line .rain {
                             p { (format!("{:.0}%", day.rain * 100.0)) }
