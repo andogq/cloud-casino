@@ -8,7 +8,8 @@ use super::bet_form::BetFormValue;
 pub fn render(
     balance: f64,
     forecast: Vec<Forecast>,
-    prefill: Option<BetFormValue>,
+    form_value: BetFormValue,
+    maximum_payout: f64,
     payout_count: usize,
 ) -> Markup {
     html! {
@@ -18,7 +19,7 @@ pub fn render(
             #draw {
                 (views::forecast::render(forecast))
 
-                (views::bet_form::render(OffsetDateTime::now_utc().date(), prefill))
+                (views::bet_form::render(OffsetDateTime::now_utc().date(), form_value, maximum_payout))
 
                 (views::payout::render_pill(payout_count))
             }

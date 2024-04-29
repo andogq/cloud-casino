@@ -21,12 +21,13 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
     views::page(views::shell::render(
         balance,
         forecast,
-        Some(BetFormValue {
+        BetFormValue {
             rain: true,
             min_temp: 19.0,
             max_temp: 20.0,
             wager: 61.50,
-        }),
+        },
+        18.4,
         ready_payouts,
     ))
 }

@@ -48,15 +48,7 @@ pub struct BetFormValue {
     pub wager: f64,
 }
 
-pub fn render(date: Date, prefill: Option<BetFormValue>) -> Markup {
-    // If no prefill is provided, just use some default values
-    let value = prefill.unwrap_or_else(|| BetFormValue {
-        rain: false,
-        min_temp: 18.0,
-        max_temp: 25.0,
-        wager: 10.0,
-    });
-
+pub fn render(date: Date, value: BetFormValue, maximum_payout: f64) -> Markup {
     html! {
         form #bet-form .peek
             action=(format!("/app/bet/{date}")) method="post"
@@ -73,6 +65,11 @@ pub fn render(date: Date, prefill: Option<BetFormValue>) -> Markup {
             }
 
             (input("wager", "wager?", "badge-dollar-sign", value.wager.to_string(), Option::<&str>::None))
+
+            p #maximum-payout {
+                "maximum payout: "
+                (format!("${maximum_payout:.2}"))
+            }
 
             button type="submit" #bet-button { "place bet" }
         }

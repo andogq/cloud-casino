@@ -71,6 +71,7 @@ html, body {
 
 .icon-input {
     & > .label {
+        color: var(--text-2);
         font-size: var(--font-size-0);
         margin-bottom: var(--size-1);
     }
@@ -271,6 +272,12 @@ main {
 #bet-form {
     grid-area: bet-form;
     background: var(--blue-1);
+}
+
+#maximum-payout {
+    font-size: var(--font-size-0);
+    color: var(--text-2);
+    text-align: right;
 }
 
 #payout {
