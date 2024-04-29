@@ -1,14 +1,15 @@
+use serde::{Deserialize, Serialize};
 use time::{Date, OffsetDateTime};
 
 use crate::{user::User, weather::Forecast};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Bet {
-    /// Minimum temperature guessed
-    pub min: f64,
+    /// Temperature that was guessed
+    pub temperature: f64,
 
-    /// Maximum temperature guessed
-    pub max: f64,
+    /// Range in average temperature
+    pub range: f64,
 
     /// Guess if it will rain
     pub rain: bool,
@@ -37,8 +38,7 @@ impl Payout {
 
         let rain_multiplier = day_multiplier + Self::RAIN_MULTIPLIER;
         let temperature_multiplier = day_multiplier
-            + ((bet.max - bet.min) / (forecast.max - forecast.min)
-                * Self::MAX_TEMPERATURE_MULTIPLIER);
+            + (bet.range / (forecast.max - forecast.min) * Self::MAX_TEMPERATURE_MULTIPLIER);
 
         Self {
             rain: rain_multiplier * bet.wager,
@@ -60,20 +60,9 @@ impl BetService {
     }
 
     pub async fn place(&self, user: &mut User, date: Date, bet: Bet, payout: Payout) {
-        let previous_bet = user.data.bets.insert(
-            date,
-            crate::Bet {
-                wager: bet.wager,
-                rain: bet.rain,
-                min: bet.min,
-                max: bet.max,
-                // TODO: Replace with updated data structure
-                forecast_range: 1.0,
-                placed: OffsetDateTime::now_utc(),
-                // TODO: Replace with updated data structure
-                payout: None,
-            },
-        );
+        let wager = bet.wager;
+
+        let previous_bet = user.data.new_bets.insert(date, bet);
 
         if let Some(previous_bet) = previous_bet {
             user.data.balance += previous_bet.wager;
@@ -81,7 +70,7 @@ impl BetService {
             user.data.outstanding_bets.push(date);
         }
 
-        user.data.balance -= bet.wager;
+        user.data.balance -= wager;
 
         user.update_session().await;
     }

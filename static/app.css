@@ -52,7 +52,7 @@ html, body {
     }
 }
 
-#temperatures {
+#temperature {
     display: flex;
     flex-direction: row;
     gap: var(--size-3);

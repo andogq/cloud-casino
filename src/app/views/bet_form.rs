@@ -45,8 +45,8 @@ fn rain_button(
 #[derive(Debug, Deserialize)]
 pub struct BetForm {
     pub rain: bool,
-    pub min_temp: f64,
-    pub max_temp: f64,
+    pub temperature: f64,
+    pub range: f64,
     pub wager: f64,
 }
 
@@ -59,8 +59,8 @@ impl From<BetForm> for Bet {
 impl From<&BetForm> for Bet {
     fn from(form: &BetForm) -> Self {
         Self {
-            min: form.min_temp,
-            max: form.max_temp,
+            temperature: form.temperature,
+            range: form.range,
             rain: form.rain,
             wager: form.wager,
         }
@@ -76,9 +76,9 @@ impl From<Bet> for BetForm {
 impl From<&Bet> for BetForm {
     fn from(bet: &Bet) -> Self {
         Self {
+            temperature: bet.temperature,
+            range: bet.range,
             rain: bet.rain,
-            min_temp: bet.min,
-            max_temp: bet.max,
             wager: bet.wager,
         }
     }
@@ -106,9 +106,9 @@ pub fn render(date: Date, value: BetForm, maximum_payout: f64) -> Markup {
                 (rain_button("rainy", "cloud-rain", false, value.rain == false))
             }
 
-            #temperatures {
-                (input("min_temp", "min temp?", "thermometer-snowflake", value.min_temp.to_string(), Some("°")))
-                (input("max_temp", "max temp?", "thermometer-sun", value.max_temp.to_string(), Some("°")))
+            #temperature {
+                (input("temperature", "temperature?", "thermometer", value.temperature.to_string(), Some("°")))
+                (input("range", "range?", "diff", value.range.to_string(), Some("°")))
             }
 
             (input("wager", "wager?", "badge-dollar-sign", value.wager.to_string(), Option::<&str>::None))

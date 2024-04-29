@@ -48,6 +48,8 @@ pub struct UserData {
 
     pub bets: HashMap<Date, Bet>,
 
+    pub new_bets: HashMap<Date, crate::app::services::bet::Bet>,
+
     pub outstanding_bets: Vec<Date>,
 }
 
@@ -70,6 +72,9 @@ impl Default for UserData {
                     payout: None,
                 },
             )]),
+
+            new_bets: HashMap::new(),
+
             outstanding_bets: Vec::from_iter([time::macros::date!(2024 - 01 - 03)]),
         }
     }

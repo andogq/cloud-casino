@@ -27,8 +27,8 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
 
     // TODO: Get this from *somewhere*
     let bet = Bet {
-        min: 19.0,
-        max: 20.0,
+        temperature: 21.0,
+        range: 2.0,
         rain: true,
         wager: 61.5,
     };
