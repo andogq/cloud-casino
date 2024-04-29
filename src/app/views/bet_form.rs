@@ -2,6 +2,8 @@ use maud::{html, Markup};
 use serde::Deserialize;
 use time::Date;
 
+use crate::app::services::bet::Bet;
+
 fn input(
     name: impl AsRef<str>,
     label: impl AsRef<str>,
@@ -41,14 +43,59 @@ fn rain_button(
 }
 
 #[derive(Debug, Deserialize)]
-pub struct BetFormValue {
+pub struct BetForm {
     pub rain: bool,
     pub min_temp: f64,
     pub max_temp: f64,
     pub wager: f64,
 }
 
-pub fn render(date: Date, value: BetFormValue, maximum_payout: f64) -> Markup {
+impl From<BetForm> for Bet {
+    fn from(form: BetForm) -> Self {
+        Self::from(&form)
+    }
+}
+
+impl From<&BetForm> for Bet {
+    fn from(form: &BetForm) -> Self {
+        Self {
+            min: form.min_temp,
+            max: form.max_temp,
+            rain: form.rain,
+            wager: form.wager,
+        }
+    }
+}
+
+impl From<Bet> for BetForm {
+    fn from(bet: Bet) -> Self {
+        Self::from(&bet)
+    }
+}
+
+impl From<&Bet> for BetForm {
+    fn from(bet: &Bet) -> Self {
+        Self {
+            rain: bet.rain,
+            min_temp: bet.min,
+            max_temp: bet.max,
+            wager: bet.wager,
+        }
+    }
+}
+
+pub fn render_maximum_payout(date: Date, payout: f64) -> Markup {
+    html! {
+        p #maximum-payout
+            hx-get=(format!("/app/bet/{date}/payout")) hx-trigger="input from:closest form" hx-include="#bet-form input"
+        {
+            "maximum payout: "
+            (format!("${payout:.2}"))
+        }
+    }
+}
+
+pub fn render(date: Date, value: BetForm, maximum_payout: f64) -> Markup {
     html! {
         form #bet-form .peek
             action=(format!("/app/bet/{date}")) method="post"
@@ -66,10 +113,7 @@ pub fn render(date: Date, value: BetFormValue, maximum_payout: f64) -> Markup {
 
             (input("wager", "wager?", "badge-dollar-sign", value.wager.to_string(), Option::<&str>::None))
 
-            p #maximum-payout {
-                "maximum payout: "
-                (format!("${maximum_payout:.2}"))
-            }
+            (render_maximum_payout(date, maximum_payout))
 
             button type="submit" #bet-button { "place bet" }
         }

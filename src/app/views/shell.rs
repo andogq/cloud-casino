@@ -3,12 +3,12 @@ use time::OffsetDateTime;
 
 use crate::{app::views, weather::Forecast};
 
-use super::bet_form::BetFormValue;
+use super::bet_form::BetForm;
 
 pub fn render(
     balance: f64,
     forecast: Vec<Forecast>,
-    form_value: BetFormValue,
+    form_value: BetForm,
     maximum_payout: f64,
     payout_count: usize,
 ) -> Markup {

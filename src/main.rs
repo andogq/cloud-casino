@@ -8,6 +8,7 @@ mod weather;
 
 use std::{env, net::Ipv4Addr, str::FromStr};
 
+use app::services::Services;
 use axum::{
     extract::State,
     routing::{get, post},
@@ -223,6 +224,7 @@ async fn summary(user: User) -> Markup {
 pub struct Ctx {
     pub db: SqlitePool,
     pub weather_service: WeatherService,
+    pub services: Services,
 }
 
 #[tokio::main]
@@ -268,6 +270,7 @@ async fn main() {
         .with_state(Ctx {
             db: pool,
             weather_service: WeatherService::new(),
+            services: Services::new(),
         });
 
     let listener = tokio::net::TcpListener::bind((Ipv4Addr::UNSPECIFIED, port))
