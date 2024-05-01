@@ -17,13 +17,12 @@ use self::{
     views::bet_form::BetForm,
 };
 
-async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
+async fn index(State(ctx): State<Ctx>, maybe_date: Option<Path<Date>>, user: User) -> Markup {
     let balance = user.data.balance;
     let forecast = ctx.weather_service.get_forecast(MELBOURNE).await;
     let ready_payouts = crate::payout::count_ready(&user);
 
-    // TODO: Determine date from selection
-    let date = OffsetDateTime::now_utc().date();
+    let date = maybe_date.map(|Path(date)| date);
 
     // TODO: Get this from *somewhere*
     let bet = Bet {
@@ -33,11 +32,16 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
         wager: 61.5,
     };
 
-    let payout = Payout::calculate(&bet, date, &forecast[0]);
+    let payout = Payout::calculate(
+        &bet,
+        date.unwrap_or_else(|| OffsetDateTime::now_utc().date()),
+        &forecast[0],
+    );
 
     views::page(views::shell::render(
         balance,
         forecast,
+        date,
         bet.into(),
         payout.total(),
         ready_payouts,
@@ -88,6 +92,7 @@ async fn calculate_payout(
 pub fn init() -> Router<Ctx> {
     Router::new()
         .route("/", get(index))
+        .route("/:date", get(index))
         .route("/bet/:date", post(place_bet))
         .route("/bet/:date/payout", get(calculate_payout))
 }

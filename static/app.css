@@ -146,7 +146,11 @@ button {
         "rain rain"
         "temperature temperature";
     gap: var(--size-1);
-    
+
+    & > input {
+        display: none;
+    }
+
     & > .day {
         grid-area: day;
         
@@ -230,18 +234,47 @@ main {
         "forecast forecast"
         "bet-form payout";
     column-gap: var(--size-1);
-    
+
     & > #forecast {
         grid-area: forecast;
-        
+            
+        overflow-x: scroll;
+
+        padding: var(--size-3);
+
         & > .days {
+            position: relative;
+            width: fit-content;
+
             display: flex;
             flex-direction: row;
             gap: var(--size-3);
-            
-            padding: var(--size-3);
-            
-            overflow-x: scroll;
+
+            &:has(.weather-tile > input:checked) > .weather-tile:not(:has(> input:checked)) {
+                opacity: 0.3;
+            }
+
+            & > .weather-tile {
+                z-index: 1;
+
+                &:has(input:checked) {
+                    pointer-events: none;
+                }
+            }
+
+            & > .deselect {
+                z-index: 0;
+
+                display: block;
+
+                position: absolute;
+                width: 100%;
+                height: 100%;
+
+                & input {
+                    display: none;
+                }
+            }
         }
     }
 }

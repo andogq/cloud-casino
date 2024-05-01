@@ -98,6 +98,7 @@ pub fn render_maximum_payout(date: Date, payout: f64) -> Markup {
 pub fn render(date: Date, value: BetForm, maximum_payout: f64) -> Markup {
     html! {
         form #bet-form .peek
+            autocomplete="off"
             action=(format!("/app/bet/{date}")) method="post"
             hx-boost="true" hx-disabled-elt="this"
         {
