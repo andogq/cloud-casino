@@ -1,5 +1,4 @@
 use maud::{html, Markup};
-use serde_json::json;
 use time::{macros::format_description, Date};
 
 use crate::weather::Forecast;
@@ -20,16 +19,16 @@ fn pick_wmo_icon(code: usize) -> &'static str {
 
 pub fn render(days: Vec<Forecast>, selected: Option<Date>) -> Markup {
     html! {
-        form #forecast {
+        form #forecast hx-get="/app/bet" hx-trigger="change" hx-target="#bet-form" hx-swap="outerHTML" {
             .days {
                 label .deselect {
-                    input type="radio" name="day" value="null" checked[selected.is_none()];
+                    input type="radio" name="date" value="null" checked[selected.is_none()];
                 }
 
                 @for day in days {
                     @let checked = selected.map(|date| date == day.date).unwrap_or(false);
                     label .weather-tile {
-                        input type="radio" name="day" autocomplete="off"
+                        input type="radio" name="date" autocomplete="off"
                             value=(day.date) checked[checked];
 
                         p .day { (day.date.format(format_description!("[weekday repr:short]")).unwrap()) }

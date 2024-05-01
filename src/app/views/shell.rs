@@ -1,5 +1,5 @@
 use maud::{html, Markup};
-use time::{Date, OffsetDateTime};
+use time::Date;
 
 use crate::{app::views, weather::Forecast};
 
@@ -9,7 +9,7 @@ pub fn render(
     balance: f64,
     forecast: Vec<Forecast>,
     selected_day: Option<Date>,
-    form_value: BetForm,
+    form_value: Option<BetForm>,
     maximum_payout: f64,
     payout_count: usize,
 ) -> Markup {
@@ -20,7 +20,7 @@ pub fn render(
             #draw {
                 (views::forecast::render(forecast, selected_day))
 
-                (views::bet_form::render(OffsetDateTime::now_utc().date(), form_value, maximum_payout))
+                (views::bet_form::render(selected_day, form_value, maximum_payout))
 
                 (views::payout::render_pill(payout_count))
             }
