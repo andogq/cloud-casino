@@ -2,7 +2,7 @@ use maud::{html, Markup};
 
 pub fn render_pill(count: usize) -> Markup {
     html! {
-        #payout .peek {
+        #payout {
             .count {
                 h3 { (count) }
             }

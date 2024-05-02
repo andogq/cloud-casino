@@ -129,7 +129,7 @@ html, body {
 }
 
 button {
-    font-size: var(--font-size-2);
+    font-size: var(--font-size-1);
     font-weight: var(--font-weight-5);
     
     color: var(--surface-1);
@@ -137,7 +137,7 @@ button {
     border-radius: var(--radius);
     
     width: fit-content;
-    padding: var(--size-1) var(--size-3);
+    padding: var(--size-2) var(--size-3);
 
     &:disabled {
         opacity: 0.5;
@@ -246,12 +246,8 @@ main {
 #draw {
     background: var(--surface-1);
     
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    grid-template-areas:
-        "forecast forecast"
-        "bet-form payout";
-    column-gap: var(--size-1);
+    display: flex;
+    flex-direction: column;
 
     & > #forecast {
         grid-area: forecast;
@@ -308,16 +304,9 @@ main {
     display: flex;
     flex-direction: column;
     
-    gap: var(--size-3);
+    gap: var(--size-2);
     padding: var(--size-3);
-
-    &:nth-last-child(2) {
-        margin-left: var(--size-1);
-    }
-
-    &:nth-last-child(1) {
-        margin-right: var(--size-1);
-    }
+    margin: 0 var(--size-3);
 }
 
 #bet-form {
@@ -332,30 +321,29 @@ main {
 }
 
 #payout {
-    grid-area: payout;
-    background: var(--blue-2);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    gap: var(--size-1);
+    padding: var(--size-1) var(--size-2);
+
+    border: var(--border-size-2) solid var(--surface-1);
+    border-radius: var(--radius);
     
+    background: none;
+    color: var(--surface-1);
     text-align: center;
-    
-    & > .count {
-        aspect-ratio: 1;
-        
-        background: var(--surface-1);
-        border-radius: var(--radius);
-        color: var(--theme);
-        
-        display: flex;
-        align-content: center;
-        justify-content: center;
-        
-        & > h3 {
-            font-size: var(--font-size-8);
-            line-height: unset;
+
+    & > p {
+        font-size: var(--font-size-0);
+
+        & .count {
+            font-weight: var(--font-weight-7);
         }
     }
     
-    & > h2 {
-        font-size: var(--font-size-0);
-        font-weight: var(--font-weight-6);
+    & > .lucide {
+        font-size: var(--font-size-1);
     }
 }

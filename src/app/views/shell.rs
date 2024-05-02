@@ -15,14 +15,12 @@ pub fn render(
 ) -> Markup {
     html! {
         main {
-            (views::head::render(balance))
+            (views::head::render(balance, payout_count))
 
             #draw {
                 (views::forecast::render(forecast, selected_day))
 
                 (views::bet_form::render(selected_day, form_value, maximum_payout))
-
-                (views::payout::render_pill(payout_count))
             }
         }
     }
