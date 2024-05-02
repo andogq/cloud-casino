@@ -311,11 +311,11 @@ main {
     gap: var(--size-3);
     padding: var(--size-3);
 
-    &:first-of-type {
+    &:nth-last-child(2) {
         margin-left: var(--size-1);
     }
 
-    &:last-of-type {
+    &:nth-last-child(1) {
         margin-right: var(--size-1);
     }
 }
