@@ -20,7 +20,8 @@ pub fn render(
             #draw {
                 (views::forecast::render(forecast, selected_day))
 
-                (views::bet_form::render(selected_day, form_value, maximum_payout))
+                // (views::bet_form::render(selected_day, form_value, maximum_payout))
+                (views::payouts::render())
             }
         }
     }

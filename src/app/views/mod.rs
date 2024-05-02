@@ -3,6 +3,7 @@ use maud::{html, Markup};
 pub mod bet_form;
 pub mod forecast;
 pub mod head;
+pub mod payouts;
 pub mod shell;
 
 pub fn page(body: Markup) -> Markup {
