@@ -68,108 +68,6 @@ pub fn render() -> Markup {
 
             payout: 150.0,
         },
-        Payout {
-            date: OffsetDateTime::now_utc().date(),
-            bet: Bet {
-                temperature: 16.0,
-                range: 3.0,
-                rain: false,
-                wager: 100.0,
-            },
-
-            rain: false,
-            rain_correct: true,
-
-            temperature: 21.0,
-            temperature_correct: false,
-
-            payout: 50.0,
-        },
-        Payout {
-            date: OffsetDateTime::now_utc().date().next_day().unwrap(),
-            bet: Bet {
-                temperature: 16.0,
-                range: 3.0,
-                rain: false,
-                wager: 100.0,
-            },
-
-            rain: true,
-            rain_correct: false,
-
-            temperature: 16.0,
-            temperature_correct: true,
-
-            payout: 150.0,
-        },
-        Payout {
-            date: OffsetDateTime::now_utc().date(),
-            bet: Bet {
-                temperature: 16.0,
-                range: 3.0,
-                rain: false,
-                wager: 100.0,
-            },
-
-            rain: false,
-            rain_correct: true,
-
-            temperature: 21.0,
-            temperature_correct: false,
-
-            payout: 50.0,
-        },
-        Payout {
-            date: OffsetDateTime::now_utc().date().next_day().unwrap(),
-            bet: Bet {
-                temperature: 16.0,
-                range: 3.0,
-                rain: false,
-                wager: 100.0,
-            },
-
-            rain: true,
-            rain_correct: false,
-
-            temperature: 16.0,
-            temperature_correct: true,
-
-            payout: 150.0,
-        },
-        Payout {
-            date: OffsetDateTime::now_utc().date(),
-            bet: Bet {
-                temperature: 16.0,
-                range: 3.0,
-                rain: false,
-                wager: 100.0,
-            },
-
-            rain: false,
-            rain_correct: true,
-
-            temperature: 21.0,
-            temperature_correct: false,
-
-            payout: 50.0,
-        },
-        Payout {
-            date: OffsetDateTime::now_utc().date().next_day().unwrap(),
-            bet: Bet {
-                temperature: 16.0,
-                range: 3.0,
-                rain: false,
-                wager: 100.0,
-            },
-
-            rain: true,
-            rain_correct: false,
-
-            temperature: 16.0,
-            temperature_correct: true,
-
-            payout: 150.0,
-        },
     ];
 
     let payout_total = payouts.iter().map(|p| p.payout).sum::<f64>();
@@ -215,7 +113,7 @@ pub fn render() -> Markup {
                 }
             }
 
-            button { "payout " (format!("${:.2}", payout_total)) }
+            button hx-post="/app/payout" hx-trigger="click" { "payout " (format!("${:.2}", payout_total)) }
         }
     }
 }

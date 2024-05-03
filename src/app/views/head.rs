@@ -5,7 +5,7 @@ pub fn render(balance: f64, payout_count: usize) -> Markup {
         #head {
             h1 #balance { (format!("${balance:.2}")) }
 
-            button #payout {
+            a href="/app/payout" hx-boost="true" #payout {
                 p {
                     span .count { (payout_count) }
 

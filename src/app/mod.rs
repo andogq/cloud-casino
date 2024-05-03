@@ -7,6 +7,7 @@ use axum::{
     routing::{get, post},
     Form, Router,
 };
+use axum_htmx::HxLocation;
 use maud::Markup;
 use serde::Deserialize;
 use time::{Date, OffsetDateTime};
@@ -29,9 +30,8 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
         balance,
         forecast,
         None,
-        None,
-        payout,
         ready_payouts,
+        views::bet_form::render(None, None, payout),
     ))
 }
 
@@ -60,7 +60,7 @@ async fn get_bet_form(
             .data
             .new_bets
             .get(&date)
-            .cloned()
+            .map(|record| record.bet.clone())
             .unwrap_or_else(|| Bet {
                 temperature: round(forecast.min + ((forecast.max - forecast.min) / 2.0), 2),
                 range: 5.0,
@@ -68,7 +68,7 @@ async fn get_bet_form(
                 wager: round(user.data.balance * 0.1, 2),
             });
 
-        let payout = Payout::calculate(&bet, date, &forecast).total();
+        let payout = Payout::max_payout(&bet, date, &forecast).total();
         (Some(bet.into()), payout)
     } else {
         (None, 0.0)
@@ -84,7 +84,12 @@ async fn place_bet(
     Form(bet_form): Form<BetForm>,
 ) -> Redirect {
     // Construct the bet
-    let bet = bet_form.into();
+    let bet = Bet {
+        temperature: bet_form.temperature,
+        range: bet_form.range,
+        rain: bet_form.rain,
+        wager: bet_form.wager,
+    };
 
     // Determine the forecast for the day
     let forecast = ctx
@@ -94,7 +99,7 @@ async fn place_bet(
         .into_iter()
         .find(|forecast| forecast.date == date)
         .unwrap();
-    let payout = Payout::calculate(&bet, date, &forecast);
+    let payout = Payout::max_payout(&bet, date, &forecast);
 
     ctx.services.bet.place(&mut user, date, bet, payout).await;
 
@@ -113,9 +118,32 @@ async fn calculate_payout(
         .into_iter()
         .find(|forecast| forecast.date == date)
         .unwrap();
-    let payout = Payout::calculate(&bet_form.into(), date, &forecast);
+    let payout = Payout::max_payout(&bet_form.into(), date, &forecast);
 
     views::bet_form::render_maximum_payout(date, payout.total())
+}
+
+async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
+    let balance = user.data.balance;
+    let forecast = ctx.weather_service.get_forecast(MELBOURNE).await;
+    let ready_payouts = crate::payout::count_ready(&user);
+
+    views::page(views::shell::render(
+        balance,
+        forecast,
+        None,
+        ready_payouts,
+        views::payouts::render(),
+    ))
+}
+
+async fn perform_payout(State(ctx): State<Ctx>, mut user: User) -> (HxLocation, &'static str) {
+    ctx.services
+        .bet
+        .payout(ctx.weather_service, &mut user)
+        .await;
+
+    (HxLocation::from_str("/app").unwrap(), "redirecting")
 }
 
 pub fn init() -> Router<Ctx> {
@@ -124,4 +152,5 @@ pub fn init() -> Router<Ctx> {
         .route("/bet", get(get_bet_form))
         .route("/bet/:date", post(place_bet))
         .route("/bet/:date/payout", get(calculate_payout))
+        .route("/payout", get(payout).post(perform_payout))
 }

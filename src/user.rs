@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 use time::{Date, OffsetDateTime};
 use tower_sessions::Session;
 
+use crate::app::services::bet::BetRecord;
+
 const INITIAL_BALANCE: f64 = 100.0;
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -48,7 +50,7 @@ pub struct UserData {
 
     pub bets: HashMap<Date, Bet>,
 
-    pub new_bets: HashMap<Date, crate::app::services::bet::Bet>,
+    pub new_bets: HashMap<Date, BetRecord>,
 
     pub outstanding_bets: Vec<Date>,
 }
@@ -73,7 +75,22 @@ impl Default for UserData {
                 },
             )]),
 
-            new_bets: HashMap::new(),
+            new_bets: HashMap::from_iter([(
+                time::macros::date!(2024 - 01 - 03),
+                BetRecord {
+                    bet: crate::app::services::bet::Bet {
+                        wager: 100.0,
+                        rain: true,
+                        temperature: 21.0,
+                        range: 2.0,
+                    },
+                    locked_payout: crate::app::services::bet::Payout {
+                        rain: 40.0,
+                        temperature: 50.0,
+                    },
+                    outcome: None,
+                },
+            )]),
 
             outstanding_bets: Vec::from_iter([time::macros::date!(2024 - 01 - 03)]),
         }
