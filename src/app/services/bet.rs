@@ -1,10 +1,11 @@
+use futures::stream::{FuturesUnordered, StreamExt};
 use serde::{Deserialize, Serialize};
 use time::{Date, OffsetDateTime};
 
 use crate::{
     user::User,
     weather::{DayWeather, Forecast, WeatherService},
-    Ctx, MELBOURNE,
+    MELBOURNE,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,9 +25,9 @@ pub struct Bet {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BetOutcome {
-    rain: bool,
-    temperature: bool,
-    payout: f64,
+    pub rain: bool,
+    pub temperature: bool,
+    pub payout: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -41,16 +42,11 @@ pub struct BetRecord {
 }
 
 impl BetRecord {
-    pub fn evaluate(&mut self, date: Date, weather: &DayWeather) {
-        // Make sure bet hasn't already been evaluated.
-        if self.outcome.is_some() {
-            return;
-        }
-
+    pub fn outcome(&self, weather: &DayWeather) -> BetOutcome {
         let rain = self.bet.rain == weather.rain;
         let temperature = (self.bet.temperature - weather.temperature).abs() <= self.bet.range;
 
-        self.outcome = Some(BetOutcome {
+        return BetOutcome {
             rain,
             temperature,
             payout: [
@@ -60,7 +56,7 @@ impl BetRecord {
             .into_iter()
             .flatten()
             .sum(),
-        })
+        };
     }
 }
 
@@ -156,11 +152,38 @@ impl BetService {
                 .unwrap();
 
             let bet = user.data.new_bets.get_mut(&date).unwrap();
-            bet.evaluate(date, &weather);
+            bet.outcome = Some(bet.outcome(&weather));
 
             user.data.balance += bet.outcome.as_ref().unwrap().payout;
         }
 
         user.update_session().await;
+    }
+
+    pub async fn get_ready(
+        &self,
+        user: &User,
+        weather_service: WeatherService,
+    ) -> Vec<(Date, BetOutcome)> {
+        let now = OffsetDateTime::now_utc().date();
+
+        user.data
+            .outstanding_bets
+            .iter()
+            .filter(|date| date < &&now)
+            .map(|date| async {
+                (
+                    date.clone(),
+                    user.data.new_bets[date].outcome(
+                        &weather_service
+                            .get_historical(MELBOURNE, *date)
+                            .await
+                            .unwrap(),
+                    ),
+                )
+            })
+            .collect::<FuturesUnordered<_>>()
+            .collect::<Vec<_>>()
+            .await
     }
 }

@@ -1,29 +1,29 @@
 use maud::{html, Markup};
-use time::{macros::format_description, Date, OffsetDateTime};
+use time::{macros::format_description, Date};
 
 use crate::app::services::bet::Bet;
 
 pub struct Payout {
     /// Date this payout is for.
-    date: Date,
+    pub date: Date,
 
     /// The bet that was placed.
-    bet: Bet,
+    pub bet: Bet,
 
     /// Whether rain was experienced on the day.
-    rain: bool,
+    pub rain: bool,
 
     /// Whether the rain guess was correct
-    rain_correct: bool,
+    pub rain_correct: bool,
 
     /// The average temperature of the day.
-    temperature: f64,
+    pub temperature: f64,
 
     /// Whether the temperature guess was correct
-    temperature_correct: bool,
+    pub temperature_correct: bool,
 
     /// The final payout for this day.
-    payout: f64,
+    pub payout: f64,
 }
 
 fn rain_icon(rain: bool) -> Markup {
@@ -32,44 +32,7 @@ fn rain_icon(rain: bool) -> Markup {
     }
 }
 
-pub fn render() -> Markup {
-    let payouts = vec![
-        Payout {
-            date: OffsetDateTime::now_utc().date(),
-            bet: Bet {
-                temperature: 16.0,
-                range: 3.0,
-                rain: false,
-                wager: 100.0,
-            },
-
-            rain: false,
-            rain_correct: true,
-
-            temperature: 21.0,
-            temperature_correct: false,
-
-            payout: 50.0,
-        },
-        Payout {
-            date: OffsetDateTime::now_utc().date().next_day().unwrap(),
-            bet: Bet {
-                temperature: 16.0,
-                range: 3.0,
-                rain: false,
-                wager: 100.0,
-            },
-
-            rain: true,
-            rain_correct: false,
-
-            temperature: 16.0,
-            temperature_correct: true,
-
-            payout: 150.0,
-        },
-    ];
-
+pub fn render(payouts: &[Payout]) -> Markup {
     let payout_total = payouts.iter().map(|p| p.payout).sum::<f64>();
 
     html! {
@@ -113,7 +76,9 @@ pub fn render() -> Markup {
                 }
             }
 
-            button hx-post="/app/payout" hx-trigger="click" { "payout " (format!("${:.2}", payout_total)) }
+            button hx-post="/app/payout" hx-trigger="click" {
+                "payout " (format!("${:.2}", payout_total))
+            }
         }
     }
 }

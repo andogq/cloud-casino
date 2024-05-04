@@ -8,6 +8,7 @@ use axum::{
     Form, Router,
 };
 use axum_htmx::HxLocation;
+use futures::{stream::FuturesUnordered, StreamExt};
 use maud::Markup;
 use serde::Deserialize;
 use time::{Date, OffsetDateTime};
@@ -126,14 +127,43 @@ async fn calculate_payout(
 async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
     let balance = user.data.balance;
     let forecast = ctx.weather_service.get_forecast(MELBOURNE).await;
-    let ready_payouts = crate::payout::count_ready(&user);
+
+    let ready_payouts = ctx
+        .services
+        .bet
+        .get_ready(&user, ctx.weather_service.clone())
+        .await;
 
     views::page(views::shell::render(
         balance,
         forecast,
         None,
-        ready_payouts,
-        views::payouts::render(),
+        ready_payouts.len(),
+        views::payouts::render(
+            &ready_payouts
+                .iter()
+                .map(|(date, outcome)| {
+                    let bet_record = user.data.new_bets.get(date).unwrap().clone();
+                    let weather = ctx.weather_service.get_historical(MELBOURNE, date.clone());
+
+                    async move {
+                        let weather = weather.await.unwrap();
+
+                        views::payouts::Payout {
+                            date: date.clone(),
+                            bet: bet_record.bet,
+                            rain: weather.rain,
+                            rain_correct: outcome.rain,
+                            temperature: weather.temperature,
+                            temperature_correct: outcome.temperature,
+                            payout: outcome.payout,
+                        }
+                    }
+                })
+                .collect::<FuturesUnordered<_>>()
+                .collect::<Vec<_>>()
+                .await,
+        ),
     ))
 }
 
