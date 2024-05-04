@@ -341,6 +341,10 @@ main {
     color: var(--surface-1);
     text-align: center;
 
+    &:hover {
+        text-decoration: none;
+    }
+
     & > p {
         font-size: var(--font-size-0);
 
