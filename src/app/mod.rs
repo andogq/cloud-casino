@@ -32,7 +32,7 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
         forecast,
         None,
         ready_payouts,
-        views::bet_form::render(None, None, payout),
+        views::bet_form::render(None, None, payout, false),
     ))
 }
 
@@ -48,7 +48,7 @@ async fn get_bet_form(
 ) -> Markup {
     let date = date.map(|date| date.0.date);
 
-    let (bet, payout) = if let Some(date) = date {
+    let (bet, payout, existing) = if let Some(date) = date {
         let day_i = (date - OffsetDateTime::now_utc().date()).whole_days() as usize;
         let forecast = &ctx.weather_service.get_forecast(MELBOURNE).await[day_i];
 
@@ -61,21 +61,24 @@ async fn get_bet_form(
             .data
             .new_bets
             .get(&date)
-            .map(|record| record.bet.clone())
-            .unwrap_or_else(|| Bet {
-                temperature: round(forecast.min + ((forecast.max - forecast.min) / 2.0), 2),
-                range: 5.0,
-                rain: forecast.rain > 0.5,
-                wager: round(user.data.balance * 0.1, 2),
-            });
+            .map(|record| record.bet.clone());
+
+        let existing = bet.is_some();
+
+        let bet = bet.unwrap_or_else(|| Bet {
+            temperature: round(forecast.min + ((forecast.max - forecast.min) / 2.0), 2),
+            range: 5.0,
+            rain: forecast.rain > 0.5,
+            wager: round(user.data.balance * 0.1, 2),
+        });
 
         let payout = Payout::max_payout(&bet, date, &forecast).total();
-        (Some(bet.into()), payout)
+        (Some(bet.into()), payout, existing)
     } else {
-        (None, 0.0)
+        (None, 0.0, false)
     };
 
-    views::bet_form::render(date, bet, payout)
+    views::bet_form::render(date, bet, payout, existing)
 }
 
 async fn place_bet(

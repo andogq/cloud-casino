@@ -97,7 +97,12 @@ pub fn render_maximum_payout(date: Date, payout: f64) -> Markup {
     }
 }
 
-pub fn render(date: Option<Date>, value: Option<BetForm>, maximum_payout: f64) -> Markup {
+pub fn render(
+    date: Option<Date>,
+    value: Option<BetForm>,
+    maximum_payout: f64,
+    replace: bool,
+) -> Markup {
     let disabled = value.is_none();
 
     html! {
@@ -133,7 +138,10 @@ pub fn render(date: Option<Date>, value: Option<BetForm>, maximum_payout: f64) -
                 }
             }
 
-            button type="submit" #bet-button disabled[disabled] { "place bet" }
+            button type="submit" #bet-button disabled[disabled] {
+                @if replace { "re-" }
+                "place bet"
+            }
         }
     }
 }
