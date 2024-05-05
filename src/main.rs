@@ -1,11 +1,12 @@
 mod app;
+mod services;
 mod user;
 mod weather;
 
 use std::{env, net::Ipv4Addr, str::FromStr};
 
-use app::services::Services;
 use axum::{routing::get, Router};
+use services::Services;
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 use time::macros::datetime;
 use tower_http::services::ServeDir;

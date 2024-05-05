@@ -1,7 +1,7 @@
 use maud::{html, Markup};
 use time::{macros::format_description, Date};
 
-use crate::app::services::bet::Bet;
+use crate::services::bet::Bet;
 
 pub struct Payout {
     /// Date this payout is for.

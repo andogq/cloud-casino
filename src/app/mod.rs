@@ -1,4 +1,3 @@
-pub mod services;
 mod views;
 
 use axum::{
@@ -13,12 +12,13 @@ use maud::{html, Markup};
 use serde::Deserialize;
 use time::{Date, OffsetDateTime};
 
-use crate::{user::User, Ctx, MELBOURNE};
-
-use self::{
+use crate::{
     services::bet::{Bet, Payout},
-    views::bet_form::BetForm,
+    user::User,
+    Ctx, MELBOURNE,
 };
+
+use self::views::bet_form::BetForm;
 
 async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
     let balance = user.data.balance;
