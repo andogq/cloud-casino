@@ -9,7 +9,7 @@ use axum::{
 };
 use axum_htmx::HxLocation;
 use futures::{stream::FuturesUnordered, StreamExt};
-use maud::Markup;
+use maud::{html, Markup};
 use serde::Deserialize;
 use time::{Date, OffsetDateTime};
 
@@ -22,28 +22,33 @@ use self::{
 
 async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
     let balance = user.data.balance;
-    let forecast = ctx.weather_service.get_forecast(MELBOURNE).await;
+    let forecast = ctx
+        .weather_service
+        .get_forecast(MELBOURNE)
+        .await
+        .into_iter()
+        .map(|forecast| {
+            let placed = user
+                .data
+                .new_bets
+                .get(&forecast.date)
+                .map(|bet| bet.bet.wager)
+                .unwrap_or_default();
+            (forecast, placed)
+        })
+        .collect();
     let ready_payouts = crate::payout::count_ready(&user);
 
     let payout = 0.0;
 
     views::page(views::shell::render(
         balance,
-        forecast
-            .into_iter()
-            .map(|forecast| {
-                let placed = user
-                    .data
-                    .new_bets
-                    .get(&forecast.date)
-                    .map(|bet| bet.bet.wager)
-                    .unwrap_or_default();
-                (forecast, placed)
-            })
-            .collect(),
-        None,
         ready_payouts,
-        views::bet_form::render(None, None, payout, false),
+        html! {
+            (views::forecast::render(forecast, None))
+
+            (views::bet_form::render(None, None, payout, false))
+        },
     ))
 }
 
@@ -140,7 +145,6 @@ async fn calculate_payout(
 
 async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
     let balance = user.data.balance;
-    let forecast = ctx.weather_service.get_forecast(MELBOURNE).await;
 
     let ready_payouts = ctx
         .services
@@ -150,19 +154,6 @@ async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
 
     views::page(views::shell::render(
         balance,
-        forecast
-            .into_iter()
-            .map(|forecast| {
-                let placed = user
-                    .data
-                    .new_bets
-                    .get(&forecast.date)
-                    .map(|bet| bet.bet.wager)
-                    .unwrap_or_default();
-                (forecast, placed)
-            })
-            .collect(),
-        None,
         ready_payouts.len(),
         views::payouts::render(
             &ready_payouts

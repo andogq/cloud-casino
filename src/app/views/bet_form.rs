@@ -2,7 +2,10 @@ use maud::{html, Markup};
 use serde::Deserialize;
 use time::Date;
 
-use crate::app::services::bet::Bet;
+use crate::{
+    app::{services::bet::Bet, views},
+    weather::Forecast,
+};
 
 fn input(
     name: impl AsRef<str>,
