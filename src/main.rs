@@ -1,18 +1,16 @@
 mod app;
 mod services;
 mod user;
-mod weather;
 
 use std::{env, net::Ipv4Addr, str::FromStr};
 
 use axum::{routing::get, Router};
-use services::Services;
+use services::{weather::Point, Services};
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 use time::macros::datetime;
 use tower_http::services::ServeDir;
 use tower_sessions::{Expiry, SessionManagerLayer};
 use tower_sessions_sqlx_store::SqliteStore;
-use weather::{Point, WeatherService};
 
 const MELBOURNE: Point = Point {
     latitude: -37.814,
@@ -22,7 +20,6 @@ const MELBOURNE: Point = Point {
 #[derive(Clone)]
 pub struct Ctx {
     pub db: SqlitePool,
-    pub weather_service: WeatherService,
     pub services: Services,
 }
 
@@ -63,7 +60,6 @@ async fn main() {
         .layer(session_layer)
         .with_state(Ctx {
             db: pool,
-            weather_service: WeatherService::new(),
             services: Services::new(),
         });
 

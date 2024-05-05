@@ -2,11 +2,9 @@ use futures::stream::{FuturesUnordered, StreamExt};
 use serde::{Deserialize, Serialize};
 use time::{Date, OffsetDateTime};
 
-use crate::{
-    user::User,
-    weather::{DayWeather, Forecast, WeatherService},
-    MELBOURNE,
-};
+use crate::{user::User, MELBOURNE};
+
+use super::weather::{DayWeather, Forecast, WeatherService};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Bet {
@@ -100,11 +98,13 @@ impl Payout {
 }
 
 #[derive(Clone)]
-pub struct BetService;
+pub struct BetService {
+    weather_service: WeatherService,
+}
 
 impl BetService {
-    pub(super) fn new() -> Self {
-        Self
+    pub(super) fn new(weather_service: WeatherService) -> Self {
+        Self { weather_service }
     }
 
     pub async fn place(&self, user: &mut User, date: Date, bet: Bet, payout: Payout) {
@@ -131,7 +131,7 @@ impl BetService {
     }
 
     // TODO: Replace ctx with weather service
-    pub async fn payout(&self, weather_service: WeatherService, user: &mut User) {
+    pub async fn payout(&self, user: &mut User) {
         let now = OffsetDateTime::now_utc().date();
 
         let mut ready_bets = vec![];
@@ -146,7 +146,8 @@ impl BetService {
         }
 
         for date in ready_bets {
-            let weather = weather_service
+            let weather = self
+                .weather_service
                 .get_historical(MELBOURNE, date)
                 .await
                 .unwrap();
@@ -160,11 +161,7 @@ impl BetService {
         user.update_session().await;
     }
 
-    pub async fn get_ready(
-        &self,
-        user: &User,
-        weather_service: WeatherService,
-    ) -> Vec<(Date, BetOutcome)> {
+    pub async fn get_ready(&self, user: &User) -> Vec<(Date, BetOutcome)> {
         let now = OffsetDateTime::now_utc().date();
 
         user.data
@@ -175,7 +172,8 @@ impl BetService {
                 (
                     date.clone(),
                     user.data.bets[date].outcome(
-                        &weather_service
+                        &self
+                            .weather_service
                             .get_historical(MELBOURNE, *date)
                             .await
                             .unwrap(),

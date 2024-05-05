@@ -23,7 +23,8 @@ use self::views::bet_form::BetForm;
 async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
     let balance = user.data.balance;
     let forecast = ctx
-        .weather_service
+        .services
+        .weather
         .get_forecast(MELBOURNE)
         .await
         .into_iter()
@@ -37,12 +38,7 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
             (forecast, placed)
         })
         .collect();
-    let ready_payouts = ctx
-        .services
-        .bet
-        .get_ready(&user, ctx.weather_service)
-        .await
-        .len();
+    let ready_payouts = ctx.services.bet.get_ready(&user).await.len();
 
     let payout = 0.0;
 
@@ -72,7 +68,7 @@ async fn get_bet_form(
 
     let (bet, payout, existing) = if let Some(date) = date {
         let day_i = (date - OffsetDateTime::now_utc().date()).whole_days() as usize;
-        let forecast = &ctx.weather_service.get_forecast(MELBOURNE).await[day_i];
+        let forecast = &ctx.services.weather.get_forecast(MELBOURNE).await[day_i];
 
         fn round(n: f64, points: usize) -> f64 {
             let f = 10f64.powi(points as i32);
@@ -115,7 +111,8 @@ async fn place_bet(
 
     // Determine the forecast for the day
     let forecast = ctx
-        .weather_service
+        .services
+        .weather
         .get_forecast(MELBOURNE)
         .await
         .into_iter()
@@ -134,7 +131,8 @@ async fn calculate_payout(
     Form(bet_form): Form<BetForm>,
 ) -> Markup {
     let forecast = ctx
-        .weather_service
+        .services
+        .weather
         .get_forecast(MELBOURNE)
         .await
         .into_iter()
@@ -148,11 +146,7 @@ async fn calculate_payout(
 async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
     let balance = user.data.balance;
 
-    let ready_payouts = ctx
-        .services
-        .bet
-        .get_ready(&user, ctx.weather_service.clone())
-        .await;
+    let ready_payouts = ctx.services.bet.get_ready(&user).await;
 
     views::page(views::shell::render(
         balance,
@@ -163,7 +157,7 @@ async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
                 .iter()
                 .map(|(date, outcome)| {
                     let bet_record = user.data.bets.get(date).unwrap().clone();
-                    let weather = ctx.weather_service.get_historical(MELBOURNE, date.clone());
+                    let weather = ctx.services.weather.get_historical(MELBOURNE, date.clone());
 
                     async move {
                         let weather = weather.await.unwrap();
@@ -187,10 +181,7 @@ async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
 }
 
 async fn perform_payout(State(ctx): State<Ctx>, mut user: User) -> (HxLocation, &'static str) {
-    ctx.services
-        .bet
-        .payout(ctx.weather_service, &mut user)
-        .await;
+    ctx.services.bet.payout(&mut user).await;
 
     (HxLocation::from_str("/").unwrap(), "redirecting")
 }

@@ -1,7 +1,7 @@
 use maud::{html, Markup};
 use time::{macros::format_description, Date};
 
-use crate::weather::Forecast;
+use crate::services::weather::Forecast;
 
 fn pick_wmo_icon(code: usize) -> &'static str {
     match code {
