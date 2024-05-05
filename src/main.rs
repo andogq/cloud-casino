@@ -265,6 +265,7 @@ async fn main() {
         .route("/bet", post(place_bet))
         .route("/summary", get(summary))
         .nest("/app", app::init())
+        .route("/health", get(|| async { "ok" }))
         .fallback_service(ServeDir::new(&static_dir))
         .layer(session_layer)
         .with_state(Ctx {
