@@ -125,7 +125,7 @@ async fn place_bet(
 
     ctx.services.bet.place(&mut user, date, bet, payout).await;
 
-    Redirect::to("/app")
+    Redirect::to("/")
 }
 
 async fn calculate_payout(
@@ -192,7 +192,7 @@ async fn perform_payout(State(ctx): State<Ctx>, mut user: User) -> (HxLocation, 
         .payout(ctx.weather_service, &mut user)
         .await;
 
-    (HxLocation::from_str("/app").unwrap(), "redirecting")
+    (HxLocation::from_str("/").unwrap(), "redirecting")
 }
 
 pub fn init() -> Router<Ctx> {

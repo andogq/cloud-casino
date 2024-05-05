@@ -19,7 +19,7 @@ fn pick_wmo_icon(code: usize) -> &'static str {
 
 pub fn render(days: Vec<(Forecast, f64)>, selected: Option<Date>) -> Markup {
     html! {
-        form #forecast hx-get="/app/bet" hx-trigger="change" hx-target="#bet-form" hx-swap="outerHTML" {
+        form #forecast hx-get="/bet" hx-trigger="change" hx-target="#bet-form" hx-swap="outerHTML" {
             .days {
                 label .deselect {
                     input type="radio" name="date" value="null" checked[selected.is_none()];

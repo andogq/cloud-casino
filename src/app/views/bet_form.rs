@@ -89,7 +89,7 @@ impl From<&Bet> for BetForm {
 pub fn render_maximum_payout(date: Date, payout: f64) -> Markup {
     html! {
         p #maximum-payout
-            hx-get=(format!("/app/bet/{date}/payout")) hx-trigger="input from:closest form" hx-include="#bet-form input"
+            hx-get=(format!("/bet/{date}/payout")) hx-trigger="input from:closest form" hx-include="#bet-form input"
         {
             "maximum payout: "
             (format!("${payout:.2}"))
@@ -108,7 +108,7 @@ pub fn render(
     html! {
         form #bet-form .peek
             autocomplete="off"
-            action=[date.map(|date| format!("/app/bet/{date}"))] method="post"
+            action=[date.map(|date| format!("/bet/{date}"))] method="post"
             hx-boost="true" hx-disabled-elt="this"
         {
             #rain-guess .pill {

@@ -76,7 +76,7 @@ pub fn render(payouts: &[Payout]) -> Markup {
                 }
             }
 
-            button hx-post="/app/payout" hx-trigger="click" {
+            button hx-post="/payout" hx-trigger="click" {
                 "payout " (format!("${:.2}", payout_total))
             }
         }
