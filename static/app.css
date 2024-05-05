@@ -162,7 +162,8 @@ button {
     grid-template-areas:
         "day icon"
         "rain rain"
-        "temperature temperature";
+        "temperature temperature"
+        "bet-amount bet-amount";
     gap: var(--size-1);
 
     & > input {
@@ -180,7 +181,7 @@ button {
     & > .lucide {
         justify-self: flex-end;
         
-        font-size: var(--size-7);
+        font-size: var(--size-5);
         
     }
 
@@ -190,6 +191,10 @@ button {
 
     & > .temperature {
         grid-area: temperature;
+    }
+
+    & > .bet-amount {
+        grid-area: bet-amount;
     }
     
     & > .line {
@@ -201,12 +206,12 @@ button {
         justify-self: flex-end;
         
         & > p {
-            font-weight: bold;
+            font-weight: var(--font-weight-5);
             font-size: var(--font-size-0);
         }
         
         & > .lucide {
-            font-size: var(--font-size-3);
+            font-size: var(--font-size-1);
         }
     }
 }

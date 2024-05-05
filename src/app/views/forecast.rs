@@ -17,7 +17,7 @@ fn pick_wmo_icon(code: usize) -> &'static str {
     }
 }
 
-pub fn render(days: Vec<Forecast>, selected: Option<Date>) -> Markup {
+pub fn render(days: Vec<(Forecast, f64)>, selected: Option<Date>) -> Markup {
     html! {
         form #forecast hx-get="/app/bet" hx-trigger="change" hx-target="#bet-form" hx-swap="outerHTML" {
             .days {
@@ -25,13 +25,15 @@ pub fn render(days: Vec<Forecast>, selected: Option<Date>) -> Markup {
                     input type="radio" name="date" value="null" checked[selected.is_none()];
                 }
 
-                @for day in days {
+                @for (day, bet_placed) in days {
                     @let checked = selected.map(|date| date == day.date).unwrap_or(false);
                     label .weather-tile {
                         input type="radio" name="date" autocomplete="off"
                             value=(day.date) checked[checked];
 
-                        p .day { (day.date.format(format_description!("[weekday repr:short]")).unwrap()) }
+                        p .day {
+                            (day.date.format(format_description!("[weekday repr:short]")).unwrap())
+                        }
 
                         i data-lucide=(pick_wmo_icon(day.wmo_code)) {}
 
@@ -43,6 +45,11 @@ pub fn render(days: Vec<Forecast>, selected: Option<Date>) -> Markup {
                         .line .temperature {
                             p { (format!("{:.0}° / {:.0}°", day.min, day.max)) }
                             i data-lucide="thermometer" {}
+                        }
+
+                        .line .bet-amount {
+                            p { (format!("${bet_placed:.2}"))}
+                            i data-lucide="badge-dollar-sign" {}
                         }
                     }
                 }

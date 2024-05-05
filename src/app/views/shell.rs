@@ -5,7 +5,7 @@ use crate::{app::views, weather::Forecast};
 
 pub fn render(
     balance: f64,
-    forecast: Vec<Forecast>,
+    forecast: Vec<(Forecast, f64)>,
     selected_day: Option<Date>,
     payout_count: usize,
     draw_content: Markup,

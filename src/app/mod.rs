@@ -29,7 +29,18 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
 
     views::page(views::shell::render(
         balance,
-        forecast,
+        forecast
+            .into_iter()
+            .map(|forecast| {
+                let placed = user
+                    .data
+                    .new_bets
+                    .get(&forecast.date)
+                    .map(|bet| bet.bet.wager)
+                    .unwrap_or_default();
+                (forecast, placed)
+            })
+            .collect(),
         None,
         ready_payouts,
         views::bet_form::render(None, None, payout, false),
@@ -139,7 +150,18 @@ async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
 
     views::page(views::shell::render(
         balance,
-        forecast,
+        forecast
+            .into_iter()
+            .map(|forecast| {
+                let placed = user
+                    .data
+                    .new_bets
+                    .get(&forecast.date)
+                    .map(|bet| bet.bet.wager)
+                    .unwrap_or_default();
+                (forecast, placed)
+            })
+            .collect(),
         None,
         ready_payouts.len(),
         views::payouts::render(
