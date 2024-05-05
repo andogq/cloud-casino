@@ -44,6 +44,7 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
     views::page(views::shell::render(
         balance,
         ready_payouts,
+        true,
         html! {
             (views::forecast::render(forecast, None))
 
@@ -155,6 +156,7 @@ async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
     views::page(views::shell::render(
         balance,
         ready_payouts.len(),
+        false,
         views::payouts::render(
             &ready_payouts
                 .iter()
