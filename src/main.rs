@@ -259,13 +259,13 @@ async fn main() {
         .with_expiry(Expiry::AtDateTime(datetime!(2099 - 01 - 01 0:00 UTC)));
 
     let app = Router::new()
+        .route("/health", get(|| async { "ok" }))
         .route("/", get(home))
         .route("/payout", get(perform_payout).post(payout))
         .route("/forecast", get(forecast))
         .route("/bet", post(place_bet))
         .route("/summary", get(summary))
         .nest("/app", app::init())
-        .route("/health", get(|| async { "ok" }))
         .fallback_service(ServeDir::new(&static_dir))
         .layer(session_layer)
         .with_state(Ctx {
