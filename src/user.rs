@@ -48,9 +48,7 @@ pub struct UserData {
     pub last_request: OffsetDateTime,
     pub balance: f64,
 
-    pub bets: HashMap<Date, Bet>,
-
-    pub new_bets: HashMap<Date, BetRecord>,
+    pub bets: HashMap<Date, BetRecord>,
 
     pub outstanding_bets: Vec<Date>,
 }
@@ -61,21 +59,7 @@ impl Default for UserData {
             last_request: OffsetDateTime::now_utc(),
             balance: INITIAL_BALANCE,
 
-            // WARN: Temporary
             bets: HashMap::from_iter([(
-                time::macros::date!(2024 - 01 - 03),
-                Bet {
-                    wager: 100.0,
-                    rain: true,
-                    min: 23.0,
-                    max: 26.0,
-                    forecast_range: 14.0,
-                    placed: time::macros::datetime!(2024-01-01 00:00 UTC),
-                    payout: None,
-                },
-            )]),
-
-            new_bets: HashMap::from_iter([(
                 time::macros::date!(2024 - 01 - 03),
                 BetRecord {
                     bet: crate::app::services::bet::Bet {

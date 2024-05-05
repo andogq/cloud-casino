@@ -30,14 +30,19 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
         .map(|forecast| {
             let placed = user
                 .data
-                .new_bets
+                .bets
                 .get(&forecast.date)
                 .map(|bet| bet.bet.wager)
                 .unwrap_or_default();
             (forecast, placed)
         })
         .collect();
-    let ready_payouts = crate::payout::count_ready(&user);
+    let ready_payouts = ctx
+        .services
+        .bet
+        .get_ready(&user, ctx.weather_service)
+        .await
+        .len();
 
     let payout = 0.0;
 
@@ -74,11 +79,7 @@ async fn get_bet_form(
             (n * f).round() / f
         }
 
-        let bet = user
-            .data
-            .new_bets
-            .get(&date)
-            .map(|record| record.bet.clone());
+        let bet = user.data.bets.get(&date).map(|record| record.bet.clone());
 
         let existing = bet.is_some();
 
@@ -161,7 +162,7 @@ async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
             &ready_payouts
                 .iter()
                 .map(|(date, outcome)| {
-                    let bet_record = user.data.new_bets.get(date).unwrap().clone();
+                    let bet_record = user.data.bets.get(date).unwrap().clone();
                     let weather = ctx.weather_service.get_historical(MELBOURNE, date.clone());
 
                     async move {

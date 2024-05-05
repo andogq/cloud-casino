@@ -110,7 +110,7 @@ impl BetService {
     pub async fn place(&self, user: &mut User, date: Date, bet: Bet, payout: Payout) {
         let wager = bet.wager;
 
-        let previous_bet = user.data.new_bets.insert(
+        let previous_bet = user.data.bets.insert(
             date,
             BetRecord {
                 bet,
@@ -151,7 +151,7 @@ impl BetService {
                 .await
                 .unwrap();
 
-            let bet = user.data.new_bets.get_mut(&date).unwrap();
+            let bet = user.data.bets.get_mut(&date).unwrap();
             bet.outcome = Some(bet.outcome(&weather));
 
             user.data.balance += bet.outcome.as_ref().unwrap().payout;
@@ -174,7 +174,7 @@ impl BetService {
             .map(|date| async {
                 (
                     date.clone(),
-                    user.data.new_bets[date].outcome(
+                    user.data.bets[date].outcome(
                         &weather_service
                             .get_historical(MELBOURNE, *date)
                             .await
