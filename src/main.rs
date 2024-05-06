@@ -9,7 +9,7 @@ use services::{weather::Point, Services};
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 use time::macros::datetime;
 use tower_http::services::ServeDir;
-use tower_sessions::{Expiry, SessionManagerLayer};
+use tower_sessions::{cookie::SameSite, Expiry, SessionManagerLayer};
 use tower_sessions_sqlx_store::SqliteStore;
 
 const MELBOURNE: Point = Point {
@@ -50,7 +50,9 @@ async fn main() {
     session_store.migrate().await.unwrap();
 
     let session_layer = SessionManagerLayer::new(session_store)
-        .with_secure(false) // WARN: Just for development
+        .with_secure(true)
+        .with_same_site(SameSite::Lax)
+        .with_http_only(true)
         .with_expiry(Expiry::AtDateTime(datetime!(2099 - 01 - 01 0:00 UTC)));
 
     let app = Router::new()

@@ -130,7 +130,6 @@ impl BetService {
         user.update_session().await;
     }
 
-    // TODO: Replace ctx with weather service
     pub async fn payout(&self, user: &mut User) {
         let now = OffsetDateTime::now_utc().date();
 
