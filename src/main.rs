@@ -58,6 +58,8 @@ async fn main() {
         .with_http_only(true)
         .with_expiry(Expiry::AtDateTime(datetime!(2099 - 01 - 01 0:00 UTC)));
 
+    let reqwest_client = reqwest::Client::new();
+
     let app = Router::new()
         .merge(app::init())
         .route("/health", get(|| async { "ok" }))
@@ -65,7 +67,7 @@ async fn main() {
         .layer(session_layer)
         .with_state(Ctx {
             db: pool.clone(),
-            services: Services::new(pool),
+            services: Services::new(pool, reqwest_client),
         });
 
     let listener = tokio::net::TcpListener::bind((Ipv4Addr::UNSPECIFIED, port))

@@ -1,4 +1,3 @@
-use futures::stream::{FuturesUnordered, StreamExt};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use time::{Date, OffsetDateTime};
@@ -123,7 +122,6 @@ impl BetService {
         .await
         .unwrap()
         .map(|record| record.wager)
-        .flatten()
         .unwrap_or(0.0);
 
         // Restore the user's balance from the previous bet
@@ -189,6 +187,7 @@ impl BetService {
     }
 
     pub async fn get_ready(&self, user: &User) -> Vec<(Date, BetOutcome)> {
+        use futures::stream::{FuturesUnordered, StreamExt};
         let now = OffsetDateTime::now_utc().date();
 
         user.data
