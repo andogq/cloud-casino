@@ -1,3 +1,5 @@
+use sqlx::SqlitePool;
+
 use self::{bet::BetService, weather::WeatherService};
 
 pub mod bet;
@@ -10,11 +12,11 @@ pub struct Services {
 }
 
 impl Services {
-    pub fn new() -> Self {
+    pub fn new(pool: SqlitePool) -> Self {
         let weather = WeatherService::new();
 
         Self {
-            bet: BetService::new(weather.clone()),
+            bet: BetService::new(pool, weather.clone()),
             weather,
         }
     }

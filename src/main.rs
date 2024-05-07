@@ -45,6 +45,9 @@ async fn main() {
     .await
     .unwrap();
 
+    // Run migrations
+    sqlx::migrate!().run(&pool).await.unwrap();
+
     // Set up sessions
     let session_store = SqliteStore::new(pool.clone());
     session_store.migrate().await.unwrap();
@@ -61,8 +64,8 @@ async fn main() {
         .fallback_service(ServeDir::new(&static_dir))
         .layer(session_layer)
         .with_state(Ctx {
-            db: pool,
-            services: Services::new(),
+            db: pool.clone(),
+            services: Services::new(pool),
         });
 
     let listener = tokio::net::TcpListener::bind((Ipv4Addr::UNSPECIFIED, port))

@@ -1,5 +1,6 @@
 use futures::stream::{FuturesUnordered, StreamExt};
 use serde::{Deserialize, Serialize};
+use sqlx::SqlitePool;
 use time::{Date, OffsetDateTime};
 
 use crate::{user::User, MELBOURNE};
@@ -99,33 +100,60 @@ impl Payout {
 
 #[derive(Clone)]
 pub struct BetService {
+    pool: SqlitePool,
     weather_service: WeatherService,
 }
 
 impl BetService {
-    pub(super) fn new(weather_service: WeatherService) -> Self {
-        Self { weather_service }
+    pub(super) fn new(pool: SqlitePool, weather_service: WeatherService) -> Self {
+        Self {
+            pool,
+            weather_service,
+        }
     }
 
     pub async fn place(&self, user: &mut User, date: Date, bet: Bet, payout: Payout) {
-        let wager = bet.wager;
+        // Find any previous bets on this day
+        let previous_wager = sqlx::query!(
+            "DELETE FROM bets WHERE user = ? AND date = ? RETURNING wager;",
+            1,
+            date
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .unwrap()
+        .map(|record| record.wager)
+        .flatten()
+        .unwrap_or(0.0);
 
-        let previous_bet = user.data.bets.insert(
-            date,
-            BetRecord {
-                bet,
-                locked_payout: payout,
-                outcome: None,
-            },
-        );
+        // Restore the user's balance from the previous bet
+        user.data.balance += previous_wager;
 
-        if let Some(previous_bet) = previous_bet {
-            user.data.balance += previous_bet.bet.wager;
-        } else {
+        // Add the new bet into the DB
+        sqlx::query(
+            "
+            INSERT INTO bets (user, date, temperature, range, rain, wager, time_placed)
+                VALUES (?, ?, ?, ?, ?, ?, ?);
+        ",
+        )
+        .bind(1)
+        .bind(date)
+        .bind(bet.temperature)
+        .bind(bet.range)
+        .bind(bet.rain)
+        .bind(bet.wager)
+        .bind(OffsetDateTime::now_utc())
+        .execute(&self.pool)
+        .await
+        .unwrap();
+
+        // Take the balance from the user for this bet
+        user.data.balance -= bet.wager;
+
+        // Update the list of oustanding bets
+        if !user.data.outstanding_bets.contains(&date) {
             user.data.outstanding_bets.push(date);
         }
-
-        user.data.balance -= wager;
 
         user.update_session().await;
     }
