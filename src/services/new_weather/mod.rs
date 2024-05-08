@@ -1,10 +1,9 @@
 mod api;
 
-use futures::FutureExt;
+use chrono::{Duration, NaiveDate};
 use num_enum::{FromPrimitive, IntoPrimitive};
 use reqwest::Client;
 use sqlx::SqlitePool;
-use time::{Date, OffsetDateTime};
 
 use crate::MELBOURNE;
 
@@ -27,8 +26,8 @@ impl WeatherService {
 
     /// Get the forecast for the provided date. Given that forecasts change over time, only one
     /// forecast is generated per day.
-    pub async fn get_daily_forecast(&self, date: Date) -> Forecast {
-        let now = OffsetDateTime::now_utc();
+    pub async fn get_daily_forecast(&self, date: NaiveDate, location: (f64, f64)) -> Forecast {
+        let now = chrono::offset::Utc::now();
 
         // Check if a forecast already exists for this date
         if let Some(forecast) = sqlx::query_as!(
@@ -46,10 +45,7 @@ impl WeatherService {
             forecast
         } else {
             // Fetch the forecast from the weather API
-            let forecast = self
-                .api
-                .get_daily_forecast(date, (MELBOURNE.latitude, MELBOURNE.longitude))
-                .await;
+            let forecast = self.api.get_daily_forecast(date, location).await;
             let weather_code = forecast.weather_code as i64;
 
             // Save it into the DB
@@ -73,11 +69,11 @@ impl WeatherService {
     }
 
     /// Get the forecast for some date range
-    pub async fn get_forecast(&self, start: Date, end: Date) -> Vec<Forecast> {
-        let now = OffsetDateTime::now_utc();
+    pub async fn get_forecast(&self, start: NaiveDate, end: NaiveDate) -> Vec<Forecast> {
+        let now = chrono::offset::Utc::now();
 
         struct Result {
-            date: Date,
+            date: NaiveDate,
             rain: bool,
             minimum_temperature: f64,
             maximum_temperature: f64,
@@ -113,7 +109,7 @@ impl WeatherService {
         let mut filter_start = start;
         for (date, _) in &forecast {
             if &filter_start == date {
-                filter_start = filter_start.next_day().unwrap();
+                filter_start += Duration::days(1);
             } else {
                 // This day is missing, filter must start here
                 break;
@@ -123,7 +119,7 @@ impl WeatherService {
         let mut filter_end = end;
         for (date, _) in forecast.iter().rev() {
             if &filter_end == date {
-                filter_end = filter_end.previous_day().unwrap();
+                filter_end += Duration::days(1);
             } else {
                 // This day is missing, filter must end here
                 break;

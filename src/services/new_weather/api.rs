@@ -1,9 +1,9 @@
 use std::fmt::Display;
 
+use chrono::NaiveDate;
 use reqwest::{Client, Url};
 use serde::Deserialize;
 use serde_json::Value;
-use time::{format_description::well_known::Iso8601, Date};
 
 use super::Forecast;
 
@@ -22,24 +22,24 @@ impl Api {
     }
 
     /// Get the forecast for a given date and location.
-    pub async fn get_daily_forecast(&self, date: Date, location: (f64, f64)) -> Forecast {
+    pub async fn get_daily_forecast(&self, date: NaiveDate, location: (f64, f64)) -> Forecast {
         self.get_forecast(date, date, location).await.remove(0).1
     }
 
     /// Get the forecast for a given range of dates in a location.
     pub async fn get_forecast(
         &self,
-        start: Date,
-        end: Date,
+        start: NaiveDate,
+        end: NaiveDate,
         location: (f64, f64),
-    ) -> Vec<(Date, Forecast)> {
+    ) -> Vec<(NaiveDate, Forecast)> {
         #[derive(Deserialize)]
         struct ForecastResponse {
             temperature_2m_min: Vec<f64>,
             temperature_2m_max: Vec<f64>,
             precipitation_probability_mean: Vec<f64>,
             weather_code: Vec<i64>,
-            date: Vec<Date>,
+            date: Vec<NaiveDate>,
         }
 
         let response = self
@@ -110,8 +110,8 @@ impl Display for ApiSource {
 }
 
 pub struct Request {
-    start_date: Date,
-    end_date: Date,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
     latitude: f64,
     longitude: f64,
     parameters: &'static [&'static str],
@@ -124,11 +124,8 @@ impl IntoIterator for Request {
 
     fn into_iter(self) -> Self::IntoIter {
         [
-            (
-                "start_date",
-                self.start_date.format(&Iso8601::DATE).unwrap(),
-            ),
-            ("end_date", self.end_date.format(&Iso8601::DATE).unwrap()),
+            ("start_date", self.start_date.to_string()),
+            ("end_date", self.end_date.to_string()),
             ("latitude", self.latitude.to_string()),
             ("longitude", self.longitude.to_string()),
             ("timezone", "auto".to_string()),

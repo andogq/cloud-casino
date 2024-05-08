@@ -39,14 +39,6 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
         })
         .collect();
 
-    // TODO: Get rid of this
-    dbg!(
-        ctx.services
-            .new_weather
-            .get_daily_forecast(OffsetDateTime::now_utc().date())
-            .await
-    );
-
     let ready_payouts = ctx.services.bet.get_ready(&user).await.len();
 
     let payout = 0.0;
