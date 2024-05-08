@@ -28,15 +28,16 @@ impl WeatherService {
     /// forecast is generated per day.
     pub async fn get_daily_forecast(&self, date: NaiveDate, location: (f64, f64)) -> Forecast {
         let now = chrono::offset::Utc::now();
+        let today = now.date_naive();
 
         // Check if a forecast already exists for this date
         if let Some(forecast) = sqlx::query_as!(
             Forecast,
             "SELECT rain, minimum_temperature, maximum_temperature, weather_code
                 FROM forecasts
-                WHERE date = ? AND date_retrieved = ?;",
+                WHERE date = ? AND DATE(date_retrieved) = ?;",
             date,
-            now
+            today
         )
         .fetch_optional(&self.pool)
         .await
@@ -69,26 +70,32 @@ impl WeatherService {
     }
 
     /// Get the forecast for some date range
-    pub async fn get_forecast(&self, start: NaiveDate, end: NaiveDate) -> Vec<Forecast> {
+    pub async fn get_forecast(
+        &self,
+        start: NaiveDate,
+        end: NaiveDate,
+    ) -> Vec<(NaiveDate, Forecast)> {
         let now = chrono::offset::Utc::now();
+        let today = now.date_naive();
 
         struct Result {
             date: NaiveDate,
-            rain: bool,
+            rain: f64,
             minimum_temperature: f64,
             maximum_temperature: f64,
             weather_code: WeatherCode,
         }
 
+        // Try pull the forecasts for the day that was generated today
         let mut forecast = sqlx::query_as!(
             Result,
             "SELECT date, rain, minimum_temperature, maximum_temperature, weather_code
                 FROM forecasts
-                WHERE date >= ? AND date <= ? AND date_retrieved = ?
+                WHERE date >= ? AND date <= ? AND DATE(date_retrieved) = ?
                 ORDER BY date;",
             start,
             end,
-            now
+            today
         )
         .map(|result| {
             (
@@ -105,6 +112,13 @@ impl WeatherService {
         .await
         .unwrap();
 
+        // If all the days are present, then no need to continue
+        if forecast.len() != (end - start).num_days().abs() as usize {
+            return forecast;
+        }
+
+        // Fetch missing days from the API
+
         // Find the first missing date
         let mut filter_start = start;
         for (date, _) in &forecast {
@@ -118,8 +132,8 @@ impl WeatherService {
 
         let mut filter_end = end;
         for (date, _) in forecast.iter().rev() {
-            if &filter_end == date {
-                filter_end += Duration::days(1);
+            if &filter_end == date && filter_end > filter_start {
+                filter_end -= Duration::days(1);
             } else {
                 // This day is missing, filter must end here
                 break;
@@ -141,20 +155,36 @@ impl WeatherService {
                 continue;
             }
 
-            // Add the forecast
+            // Save the collection in the DB
+            let weather_code = day_forecast.weather_code as i64;
+            sqlx::query!(
+                "INSERT INTO forecasts (date, date_retrieved, rain, minimum_temperature, maximum_temperature, weather_code)
+                    VALUES (?, ?, ?, ?, ?, ?);",
+                date,
+                now,
+                day_forecast.rain,
+                day_forecast.minimum_temperature,
+                day_forecast.maximum_temperature,
+                weather_code,
+            )
+                .execute(&self.pool)
+                .await
+                .unwrap();
+
+            // Add the forecast to the collection
             forecast.push((date, day_forecast));
         }
 
         // Sort the forecast by the date again
         forecast.sort_unstable_by_key(|&(date, _)| date);
 
-        forecast.into_iter().map(|(_, forecast)| forecast).collect()
+        forecast
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct Forecast {
-    pub rain: bool,
+    pub rain: f64,
     pub minimum_temperature: f64,
     pub maximum_temperature: f64,
     pub weather_code: WeatherCode,

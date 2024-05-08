@@ -28,7 +28,7 @@ CREATE TABLE forecasts (
     date_retrieved DATETIME NOT NULL,
 
     -- Whether rain is forecast for this day
-    rain BOOLEAN NOT NULL,
+    rain FLOAT NOT NULL,
 
     -- Minimum and maximum temperature for this day
     minimum_temperature FLOAT NOT NULL,

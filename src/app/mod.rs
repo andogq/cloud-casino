@@ -1,5 +1,7 @@
 mod views;
 
+use std::str::FromStr;
+
 use axum::{
     extract::{Path, Query, State},
     response::Redirect,
@@ -7,6 +9,7 @@ use axum::{
     Form, Router,
 };
 use axum_htmx::HxLocation;
+use chrono::{Duration, Utc};
 use futures::{stream::FuturesUnordered, StreamExt};
 use maud::{html, Markup};
 use serde::Deserialize;
@@ -21,23 +24,35 @@ use crate::{
 use self::views::bet_form::BetForm;
 
 async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
-    let balance = user.data.balance;
+    let timezone = "Australia/Melbourne";
+
+    // Work out what 'today' is in the local timezone
+    let today = Utc::now()
+        .with_timezone(&chrono_tz::Tz::from_str(&timezone).unwrap())
+        .naive_local()
+        .date();
+    let next_week = today + Duration::weeks(1);
+
     let forecast = ctx
         .services
-        .weather
-        .get_forecast(MELBOURNE)
+        .new_weather
+        .get_forecast(today, next_week)
         .await
         .into_iter()
-        .map(|forecast| {
-            let placed = user
-                .data
-                .bets
-                .get(&forecast.date)
-                .map(|bet| bet.bet.wager)
-                .unwrap_or_default();
-            (forecast, placed)
+        .map(|(date, forecast)| {
+            // TODO: Fetch this from the bet service
+            let placed = 10.0;
+            // let placed = user
+            //     .data
+            //     .bets
+            //     .get(&date)
+            //     .map(|bet| bet.bet.wager)
+            //     .unwrap_or_default();
+            (date, forecast, placed)
         })
         .collect();
+
+    let balance = user.data.balance;
 
     let ready_payouts = ctx.services.bet.get_ready(&user).await.len();
 

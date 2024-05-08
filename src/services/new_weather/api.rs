@@ -39,7 +39,7 @@ impl Api {
             temperature_2m_max: Vec<f64>,
             precipitation_probability_mean: Vec<f64>,
             weather_code: Vec<i64>,
-            date: Vec<NaiveDate>,
+            time: Vec<NaiveDate>,
         }
 
         let response = self
@@ -63,10 +63,9 @@ impl Api {
         (0..)
             .map_while(|i| {
                 Some((
-                    *response.date.get(i)?,
+                    *response.time.get(i)?,
                     Forecast {
-                        rain: (response.precipitation_probability_mean.get(i)? / 100.0)
-                            > Self::RAIN_THRESHOLD,
+                        rain: response.precipitation_probability_mean.get(i)? / 100.0,
                         minimum_temperature: *response.temperature_2m_min.get(i)?,
                         maximum_temperature: *response.temperature_2m_max.get(i)?,
                         weather_code: (*response.weather_code.get(i)?).into(),
@@ -109,6 +108,7 @@ impl Display for ApiSource {
     }
 }
 
+#[derive()]
 pub struct Request {
     start_date: NaiveDate,
     end_date: NaiveDate,
