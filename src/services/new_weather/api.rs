@@ -3,7 +3,7 @@ use std::fmt::Display;
 use reqwest::{Client, Url};
 use serde::Deserialize;
 use serde_json::Value;
-use time::{format_description::well_known::Iso8601, OffsetDateTime};
+use time::{format_description::well_known::Iso8601, Date};
 
 use super::Forecast;
 
@@ -22,20 +22,32 @@ impl Api {
     }
 
     /// Get the forecast for a given date and location.
-    pub async fn get_forecast(&self, date: OffsetDateTime, location: (f64, f64)) -> Forecast {
+    pub async fn get_daily_forecast(&self, date: Date, location: (f64, f64)) -> Forecast {
+        self.get_forecast(date, date, location).await.remove(0).1
+    }
+
+    /// Get the forecast for a given range of dates in a location.
+    pub async fn get_forecast(
+        &self,
+        start: Date,
+        end: Date,
+        location: (f64, f64),
+    ) -> Vec<(Date, Forecast)> {
         #[derive(Deserialize)]
         struct ForecastResponse {
             temperature_2m_min: Vec<f64>,
             temperature_2m_max: Vec<f64>,
             precipitation_probability_mean: Vec<f64>,
             weather_code: Vec<i64>,
+            date: Vec<Date>,
         }
 
         let response = self
             .request::<ForecastResponse>(
                 ApiSource::Forecast,
                 Request {
-                    date,
+                    start_date: start,
+                    end_date: end,
                     latitude: location.0,
                     longitude: location.1,
                     parameters: &[
@@ -48,12 +60,20 @@ impl Api {
             )
             .await;
 
-        Forecast {
-            rain: (response.precipitation_probability_mean[0] / 100.0) > Self::RAIN_THRESHOLD,
-            minimum_temperature: response.temperature_2m_min[0],
-            maximum_temperature: response.temperature_2m_max[0],
-            weather_code: response.weather_code[0].into(),
-        }
+        (0..)
+            .map_while(|i| {
+                Some((
+                    *response.date.get(i)?,
+                    Forecast {
+                        rain: (response.precipitation_probability_mean.get(i)? / 100.0)
+                            > Self::RAIN_THRESHOLD,
+                        minimum_temperature: *response.temperature_2m_min.get(i)?,
+                        maximum_temperature: *response.temperature_2m_max.get(i)?,
+                        weather_code: (*response.weather_code.get(i)?).into(),
+                    },
+                ))
+            })
+            .collect()
     }
 
     /// Internal helper for making a request to the weather API.
@@ -90,7 +110,8 @@ impl Display for ApiSource {
 }
 
 pub struct Request {
-    date: OffsetDateTime,
+    start_date: Date,
+    end_date: Date,
     latitude: f64,
     longitude: f64,
     parameters: &'static [&'static str],
@@ -99,14 +120,18 @@ pub struct Request {
 impl IntoIterator for Request {
     type Item = (&'static str, String);
 
-    type IntoIter = std::array::IntoIter<Self::Item, 5>;
+    type IntoIter = std::array::IntoIter<Self::Item, 6>;
 
     fn into_iter(self) -> Self::IntoIter {
         [
-            ("start_date", self.date.format(&Iso8601::DATE).unwrap()),
-            ("end_date", self.date.format(&Iso8601::DATE).unwrap()),
+            (
+                "start_date",
+                self.start_date.format(&Iso8601::DATE).unwrap(),
+            ),
+            ("end_date", self.end_date.format(&Iso8601::DATE).unwrap()),
             ("latitude", self.latitude.to_string()),
             ("longitude", self.longitude.to_string()),
+            ("timezone", "auto".to_string()),
             ("daily", self.parameters.join(",")),
         ]
         .into_iter()

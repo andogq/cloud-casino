@@ -3,7 +3,7 @@ CREATE TABLE bets (
     user INTEGER NOT NULL,
 
     -- Date the bet is for
-    date DATETIME NOT NULL,
+    date DATE NOT NULL,
 
     -- Values for the bet
     temperature FLOAT NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE bets (
 
 CREATE TABLE forecasts (
     -- Date that the forecast is for
-    date DATETIME NOT NULL,
+    date DATE NOT NULL,
 
     -- Date that the forecast was retrieved
     date_retrieved DATETIME NOT NULL,

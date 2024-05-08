@@ -1,9 +1,10 @@
 mod api;
 
+use futures::FutureExt;
 use num_enum::{FromPrimitive, IntoPrimitive};
 use reqwest::Client;
 use sqlx::SqlitePool;
-use time::OffsetDateTime;
+use time::{Date, OffsetDateTime};
 
 use crate::MELBOURNE;
 
@@ -26,28 +27,35 @@ impl WeatherService {
 
     /// Get the forecast for the provided date. Given that forecasts change over time, only one
     /// forecast is generated per day.
-    pub async fn get_forecast(&self, date: OffsetDateTime) -> Forecast {
+    pub async fn get_daily_forecast(&self, date: Date) -> Forecast {
         let now = OffsetDateTime::now_utc();
 
         // Check if a forecast already exists for this date
         if let Some(forecast) = sqlx::query_as!(
             Forecast,
-            "SELECT rain, minimum_temperature, maximum_temperature, weather_code FROM forecasts WHERE date = ? AND date_retrieved = ?;",
+            "SELECT rain, minimum_temperature, maximum_temperature, weather_code
+                FROM forecasts
+                WHERE date = ? AND date_retrieved = ?;",
             date,
             now
         )
-            .fetch_optional(&self.pool)
-            .await
-            .unwrap() {
+        .fetch_optional(&self.pool)
+        .await
+        .unwrap()
+        {
             forecast
         } else {
             // Fetch the forecast from the weather API
-            let forecast = self.api.get_forecast(date, (MELBOURNE.latitude, MELBOURNE.longitude)).await;
+            let forecast = self
+                .api
+                .get_daily_forecast(date, (MELBOURNE.latitude, MELBOURNE.longitude))
+                .await;
             let weather_code = forecast.weather_code as i64;
 
             // Save it into the DB
             sqlx::query!(
-                "INSERT INTO forecasts (date, date_retrieved, rain, minimum_temperature, maximum_temperature, weather_code) VALUES (?, ?, ?, ?, ?, ?);",
+                "INSERT INTO forecasts (date, date_retrieved, rain, minimum_temperature, maximum_temperature, weather_code)
+                    VALUES (?, ?, ?, ?, ?, ?);",
                 date,
                 now,
                 forecast.rain,
@@ -62,6 +70,89 @@ impl WeatherService {
             // Return the forecast
             forecast
         }
+    }
+
+    /// Get the forecast for some date range
+    pub async fn get_forecast(&self, start: Date, end: Date) -> Vec<Forecast> {
+        let now = OffsetDateTime::now_utc();
+
+        struct Result {
+            date: Date,
+            rain: bool,
+            minimum_temperature: f64,
+            maximum_temperature: f64,
+            weather_code: WeatherCode,
+        }
+
+        let mut forecast = sqlx::query_as!(
+            Result,
+            "SELECT date, rain, minimum_temperature, maximum_temperature, weather_code
+                FROM forecasts
+                WHERE date >= ? AND date <= ? AND date_retrieved = ?
+                ORDER BY date;",
+            start,
+            end,
+            now
+        )
+        .map(|result| {
+            (
+                result.date,
+                Forecast {
+                    rain: result.rain,
+                    minimum_temperature: result.minimum_temperature,
+                    maximum_temperature: result.maximum_temperature,
+                    weather_code: result.weather_code,
+                },
+            )
+        })
+        .fetch_all(&self.pool)
+        .await
+        .unwrap();
+
+        // Find the first missing date
+        let mut filter_start = start;
+        for (date, _) in &forecast {
+            if &filter_start == date {
+                filter_start = filter_start.next_day().unwrap();
+            } else {
+                // This day is missing, filter must start here
+                break;
+            }
+        }
+
+        let mut filter_end = end;
+        for (date, _) in forecast.iter().rev() {
+            if &filter_end == date {
+                filter_end = filter_end.previous_day().unwrap();
+            } else {
+                // This day is missing, filter must end here
+                break;
+            }
+        }
+
+        // Get the missing days, and add them to the forecast
+        for (date, day_forecast) in self
+            .api
+            .get_forecast(
+                filter_start,
+                filter_end,
+                (MELBOURNE.latitude, MELBOURNE.longitude),
+            )
+            .await
+        {
+            // See if the day is already in the provided forecast
+            if forecast.iter().find(|d| d.0 == date).is_some() {
+                continue;
+            }
+
+            // Add the forecast
+            forecast.push((date, day_forecast));
+        }
+
+        // Sort the forecast by the date again
+        forecast.sort_unstable_by_key(|&(date, _)| date);
+
+        forecast.into_iter().map(|(_, forecast)| forecast).collect()
     }
 }
 

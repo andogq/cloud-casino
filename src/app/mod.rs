@@ -43,7 +43,7 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
     dbg!(
         ctx.services
             .new_weather
-            .get_forecast(OffsetDateTime::now_utc())
+            .get_daily_forecast(OffsetDateTime::now_utc().date())
             .await
     );
 
