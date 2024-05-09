@@ -41,6 +41,20 @@ CREATE TABLE forecasts (
     PRIMARY KEY (date, date_retrieved)
 );
 
+CREATE TABLE historical_weather (
+    -- Date that the weather was for
+    date DATE NOT NULL PRIMARY KEY,
+
+    -- Average temperature for this day
+    temperature FLOAT NOT NULL,
+
+    -- Whether it rained on this day
+    rain BOOLEAN NOT NULL,
+
+    -- Date that the historical weather was pulled
+    date_retrieved DATETIME NOT NULL
+);
+
 CREATE TABLE payouts (
     -- User and date of the bet
     bet_user INTEGER NOT NULL,
