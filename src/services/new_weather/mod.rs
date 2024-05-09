@@ -1,4 +1,5 @@
 mod api;
+mod db;
 
 use chrono::{Duration, NaiveDate};
 use num_enum::{FromPrimitive, IntoPrimitive};
@@ -7,20 +8,20 @@ use sqlx::SqlitePool;
 
 use crate::MELBOURNE;
 
-use self::api::Api;
+use self::{api::Api, db::Db};
 
 #[derive(Clone)]
 pub struct WeatherService {
-    pool: SqlitePool,
     api: Api,
+    db: Db,
 }
 
 impl WeatherService {
     /// Create a new instance of the weather service.
     pub fn new(pool: SqlitePool, client: Client) -> Self {
         Self {
-            pool,
             api: Api::new(client),
+            db: Db::new(pool),
         }
     }
 
@@ -28,41 +29,16 @@ impl WeatherService {
     /// forecast is generated per day.
     pub async fn get_daily_forecast(&self, date: NaiveDate, location: (f64, f64)) -> Forecast {
         let now = chrono::offset::Utc::now();
-        let today = now.date_naive();
 
         // Check if a forecast already exists for this date
-        if let Some(forecast) = sqlx::query_as!(
-            Forecast,
-            "SELECT rain, minimum_temperature, maximum_temperature, weather_code
-                FROM forecasts
-                WHERE date = ? AND DATE(date_retrieved) = ?;",
-            date,
-            today
-        )
-        .fetch_optional(&self.pool)
-        .await
-        .unwrap()
-        {
+        if let Some(forecast) = self.db.get_day_forecast(date, now).await {
             forecast
         } else {
             // Fetch the forecast from the weather API
             let forecast = self.api.get_daily_forecast(date, location).await;
-            let weather_code = forecast.weather_code as i64;
 
             // Save it into the DB
-            sqlx::query!(
-                "INSERT INTO forecasts (date, date_retrieved, rain, minimum_temperature, maximum_temperature, weather_code)
-                    VALUES (?, ?, ?, ?, ?, ?);",
-                date,
-                now,
-                forecast.rain,
-                forecast.minimum_temperature,
-                forecast.maximum_temperature,
-                weather_code,
-            )
-                .execute(&self.pool)
-                .await
-                .unwrap();
+            self.db.save_forecast(date, now, &forecast).await;
 
             // Return the forecast
             forecast
@@ -76,48 +52,14 @@ impl WeatherService {
         end: NaiveDate,
     ) -> Vec<(NaiveDate, Forecast)> {
         let now = chrono::offset::Utc::now();
-        let today = now.date_naive();
 
-        struct Result {
-            date: NaiveDate,
-            rain: f64,
-            minimum_temperature: f64,
-            maximum_temperature: f64,
-            weather_code: WeatherCode,
-        }
-
-        // Try pull the forecasts for the day that was generated today
-        let mut forecast = sqlx::query_as!(
-            Result,
-            "SELECT date, rain, minimum_temperature, maximum_temperature, weather_code
-                FROM forecasts
-                WHERE date >= ? AND date <= ? AND DATE(date_retrieved) = ?
-                ORDER BY date;",
-            start,
-            end,
-            today
-        )
-        .map(|result| {
-            (
-                result.date,
-                Forecast {
-                    rain: result.rain,
-                    minimum_temperature: result.minimum_temperature,
-                    maximum_temperature: result.maximum_temperature,
-                    weather_code: result.weather_code,
-                },
-            )
-        })
-        .fetch_all(&self.pool)
-        .await
-        .unwrap();
+        // Fetch the saved forecast for this date range
+        let mut forecast = self.db.get_forecast_range(start, end, now).await;
 
         // If all the days are present, then no need to continue
         if forecast.len() != (end - start).num_days().abs() as usize {
             return forecast;
         }
-
-        // Fetch missing days from the API
 
         // Find the first missing date
         let mut filter_start = start;
@@ -156,20 +98,7 @@ impl WeatherService {
             }
 
             // Save the collection in the DB
-            let weather_code = day_forecast.weather_code as i64;
-            sqlx::query!(
-                "INSERT INTO forecasts (date, date_retrieved, rain, minimum_temperature, maximum_temperature, weather_code)
-                    VALUES (?, ?, ?, ?, ?, ?);",
-                date,
-                now,
-                day_forecast.rain,
-                day_forecast.minimum_temperature,
-                day_forecast.maximum_temperature,
-                weather_code,
-            )
-                .execute(&self.pool)
-                .await
-                .unwrap();
+            self.db.save_forecast(date, now, &day_forecast).await;
 
             // Add the forecast to the collection
             forecast.push((date, day_forecast));
@@ -190,7 +119,7 @@ pub struct Forecast {
     pub weather_code: WeatherCode,
 }
 
-#[derive(Clone, Copy, Debug, IntoPrimitive, FromPrimitive)]
+#[derive(Clone, Copy, Debug, IntoPrimitive, FromPrimitive, sqlx::Type)]
 #[repr(i64)]
 pub enum WeatherCode {
     #[num_enum(alternatives = [1])]
