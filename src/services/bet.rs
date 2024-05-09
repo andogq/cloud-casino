@@ -1,10 +1,13 @@
+use chrono::{NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
-use time::{Date, OffsetDateTime};
 
 use crate::{user::User, MELBOURNE};
 
-use super::weather::{DayWeather, Forecast, WeatherService};
+use super::{
+    new_weather::Forecast,
+    weather::{DayWeather, WeatherService},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Bet {
@@ -72,20 +75,21 @@ impl Payout {
     const DAY_MULTIPLIER: f64 = 0.2;
     const RAIN_MULTIPLIER: f64 = 1.25;
 
-    fn day_multiplier(date: Date) -> f64 {
-        Self::DAY_MULTIPLIER * (date - OffsetDateTime::now_utc().date()).whole_days() as f64
+    fn day_multiplier(date: NaiveDate) -> f64 {
+        Self::DAY_MULTIPLIER * (date - Utc::now().date_naive()).num_days() as f64
     }
 
-    pub fn rain_multiplier(date: Date) -> f64 {
+    pub fn rain_multiplier(date: NaiveDate) -> f64 {
         Self::day_multiplier(date) + Self::RAIN_MULTIPLIER
     }
 
-    pub fn temperature_multiplier(date: Date, bet: &Bet, forecast: &Forecast) -> f64 {
+    pub fn temperature_multiplier(date: NaiveDate, bet: &Bet, forecast: &Forecast) -> f64 {
         Self::day_multiplier(date)
-            + (bet.range / (forecast.max - forecast.min) * Self::MAX_TEMPERATURE_MULTIPLIER)
+            + (bet.range / (forecast.maximum_temperature - forecast.minimum_temperature)
+                * Self::MAX_TEMPERATURE_MULTIPLIER)
     }
 
-    pub fn max_payout(bet: &Bet, date: Date, forecast: &Forecast) -> Self {
+    pub fn max_payout(bet: &Bet, date: NaiveDate, forecast: &Forecast) -> Self {
         Self {
             rain: Self::rain_multiplier(date) * bet.wager,
             temperature: Self::temperature_multiplier(date, &bet, forecast) * bet.wager,
@@ -111,7 +115,7 @@ impl BetService {
         }
     }
 
-    pub async fn place(&self, user: &mut User, date: Date, bet: Bet, payout: Payout) {
+    pub async fn place(&self, user: &mut User, date: NaiveDate, bet: Bet, payout: Payout) {
         // Find any previous bets on this day
         let previous_wager = sqlx::query!(
             "DELETE FROM bets WHERE user = ? AND date = ? RETURNING wager;",
@@ -140,7 +144,7 @@ impl BetService {
         .bind(bet.range)
         .bind(bet.rain)
         .bind(bet.wager)
-        .bind(OffsetDateTime::now_utc())
+        .bind(Utc::now())
         .execute(&self.pool)
         .await
         .unwrap();
@@ -157,7 +161,7 @@ impl BetService {
     }
 
     pub async fn payout(&self, user: &mut User) {
-        let now = OffsetDateTime::now_utc().date();
+        let now = Utc::now().date_naive();
 
         let mut ready_bets = vec![];
         for date in std::mem::take(&mut user.data.outstanding_bets) {
@@ -186,9 +190,9 @@ impl BetService {
         user.update_session().await;
     }
 
-    pub async fn get_ready(&self, user: &User) -> Vec<(Date, BetOutcome)> {
+    pub async fn get_ready(&self, user: &User) -> Vec<(NaiveDate, BetOutcome)> {
         use futures::stream::{FuturesUnordered, StreamExt};
-        let now = OffsetDateTime::now_utc().date();
+        let now = Utc::now().date_naive();
 
         user.data
             .outstanding_bets

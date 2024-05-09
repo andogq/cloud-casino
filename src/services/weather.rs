@@ -1,13 +1,13 @@
 use std::time::Duration;
 
+use chrono::NaiveDate;
 use moka::future::Cache;
 use reqwest::Url;
 use serde::Deserialize;
-use time::Date;
 
 #[derive(Debug, Clone)]
 pub struct Forecast {
-    pub date: Date,
+    pub date: NaiveDate,
     pub rain: f64,
     pub min: f64,
     pub max: f64,
@@ -116,7 +116,7 @@ impl WeatherService {
         forecast
     }
 
-    pub async fn get_historical(&self, location: Point, date: Date) -> Option<DayWeather> {
+    pub async fn get_historical(&self, location: Point, date: NaiveDate) -> Option<DayWeather> {
         let fixed = location.to_fixed();
 
         // TODO: Use cache
@@ -185,7 +185,7 @@ impl WeatherService {
 #[derive(Deserialize)]
 struct DailyForecast {
     #[serde(rename = "time")]
-    date: Vec<Date>,
+    date: Vec<NaiveDate>,
 
     #[serde(rename = "temperature_2m_max")]
     max: Vec<f64>,

@@ -1,6 +1,6 @@
+use chrono::NaiveDate;
 use maud::{html, Markup};
 use serde::Deserialize;
-use time::Date;
 
 use crate::services::bet::Bet;
 
@@ -86,7 +86,7 @@ impl From<&Bet> for BetForm {
     }
 }
 
-pub fn render_maximum_payout(date: Date, payout: f64) -> Markup {
+pub fn render_maximum_payout(date: NaiveDate, payout: f64) -> Markup {
     html! {
         p #maximum-payout
             hx-get=(format!("/bet/{date}/payout")) hx-trigger="input from:closest form" hx-include="#bet-form input"
@@ -98,7 +98,7 @@ pub fn render_maximum_payout(date: Date, payout: f64) -> Markup {
 }
 
 pub fn render(
-    date: Option<Date>,
+    date: Option<NaiveDate>,
     value: Option<BetForm>,
     maximum_payout: f64,
     replace: bool,

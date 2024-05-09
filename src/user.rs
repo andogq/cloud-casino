@@ -5,8 +5,9 @@ use axum::{
     extract::FromRequestParts,
     http::{request::Parts, StatusCode},
 };
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
-use time::{Date, OffsetDateTime};
+use time::OffsetDateTime;
 use tower_sessions::Session;
 
 use crate::services::bet::BetRecord;
@@ -45,22 +46,22 @@ pub struct Bet {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct UserData {
-    pub last_request: OffsetDateTime,
+    pub last_request: DateTime<Utc>,
     pub balance: f64,
 
-    pub bets: HashMap<Date, BetRecord>,
+    pub bets: HashMap<NaiveDate, BetRecord>,
 
-    pub outstanding_bets: Vec<Date>,
+    pub outstanding_bets: Vec<NaiveDate>,
 }
 
 impl Default for UserData {
     fn default() -> Self {
         Self {
-            last_request: OffsetDateTime::now_utc(),
+            last_request: Utc::now(),
             balance: INITIAL_BALANCE,
 
             bets: HashMap::from_iter([(
-                time::macros::date!(2024 - 01 - 03),
+                NaiveDate::from_ymd_opt(2024, 01, 03).unwrap(),
                 BetRecord {
                     bet: crate::services::bet::Bet {
                         wager: 100.0,
@@ -76,7 +77,7 @@ impl Default for UserData {
                 },
             )]),
 
-            outstanding_bets: Vec::from_iter([time::macros::date!(2024 - 01 - 03)]),
+            outstanding_bets: Vec::from_iter([NaiveDate::from_ymd_opt(2024, 01, 03).unwrap()]),
         }
     }
 }
@@ -120,7 +121,7 @@ where
         let session = Session::from_request_parts(parts, state).await?;
 
         let mut user = Self::from_session(session).await;
-        user.data.last_request = OffsetDateTime::now_utc();
+        user.data.last_request = Utc::now();
         user.update_session().await;
 
         Ok(user)
