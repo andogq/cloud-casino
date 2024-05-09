@@ -1,11 +1,11 @@
 use std::fmt::Display;
 
-use chrono::NaiveDate;
+use chrono::{Duration, NaiveDate};
 use reqwest::{Client, Url};
 use serde::Deserialize;
 use serde_json::Value;
 
-use super::Forecast;
+use super::{Forecast, Weather};
 
 #[derive(Clone)]
 pub struct Api {
@@ -75,6 +75,68 @@ impl Api {
             .collect()
     }
 
+    pub async fn get_historical(
+        &self,
+        start: NaiveDate,
+        end: NaiveDate,
+        location: (f64, f64),
+    ) -> Vec<(NaiveDate, Weather)> {
+        let request = Request {
+            start_date: start,
+            end_date: end,
+            latitude: location.0,
+            longitude: location.1,
+            parameters: &["temperature_2m_mean", "precipitation_sum"],
+        };
+
+        #[derive(Deserialize)]
+        struct WeatherResponse {
+            temperature_2m_mean: Vec<f64>,
+            precipitation_sum: Vec<f64>,
+            time: Vec<NaiveDate>,
+        }
+
+        impl WeatherResponse {
+            pub fn process(self) -> Vec<(NaiveDate, Weather)> {
+                (0..)
+                    .map_while(|i| {
+                        Some((
+                            *self.time.get(i)?,
+                            Weather {
+                                rain: *self.precipitation_sum.get(i)? > Api::RAIN_THRESHOLD,
+                                temperature: *self.temperature_2m_mean.get(i)?,
+                            },
+                        ))
+                    })
+                    .collect()
+            }
+        }
+
+        // Fetch from the API
+        let mut weather = self
+            .request::<WeatherResponse>(ApiSource::Archive, request.clone())
+            .await
+            .process();
+
+        let forecast = self
+            .request::<WeatherResponse>(ApiSource::Forecast, request)
+            .await
+            .process();
+
+        // Merge weather and forecast
+        let mut date = start;
+        while date != end {
+            if !weather.iter().any(|&(d, _)| d == date) {
+                // Add the missing day from the forecast
+                weather.push(forecast.iter().find(|&(d, _)| *d == date).unwrap().clone());
+            }
+
+            date += Duration::days(1);
+        }
+
+        weather
+    }
+
     /// Internal helper for making a request to the weather API.
     async fn request<'de, T: Deserialize<'de>>(&self, source: ApiSource, request: Request) -> T {
         let url = Url::parse_with_params(&source.to_string(), request.into_iter()).unwrap();
@@ -108,7 +170,7 @@ impl Display for ApiSource {
     }
 }
 
-#[derive()]
+#[derive(Clone, Debug)]
 pub struct Request {
     start_date: NaiveDate,
     end_date: NaiveDate,

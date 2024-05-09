@@ -1,9 +1,9 @@
 use chrono::{DateTime, NaiveDate, Utc};
 use sqlx::SqlitePool;
 
-use crate::services::new_weather::WeatherCode;
+use crate::services::weather::WeatherCode;
 
-use super::Forecast;
+use super::{Forecast, Weather};
 
 #[derive(Clone)]
 pub struct Db {
@@ -103,5 +103,39 @@ impl Db {
                 .execute(&self.pool)
                 .await
                 .unwrap();
+    }
+
+    /// Get the historical weather for some date.
+    pub async fn get_historical_weather(&self, date: NaiveDate) -> Option<Weather> {
+        sqlx::query_as!(
+            Weather,
+            "SELECT rain, temperature
+                FROM historical_weather
+                WHERE date = ?",
+            date
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .unwrap()
+    }
+
+    /// Save historical weather for some day as if it were retrieved on the given day.
+    pub async fn save_historical_weather(
+        &self,
+        date: NaiveDate,
+        retrieval_date: DateTime<Utc>,
+        weather: &Weather,
+    ) {
+        sqlx::query!(
+            "INSERT INTO historical_weather (date, temperature, rain, date_retrieved)
+                VALUES (?, ?, ?, ?)",
+            date,
+            weather.temperature,
+            weather.rain,
+            retrieval_date,
+        )
+        .execute(&self.pool)
+        .await
+        .unwrap();
     }
 }

@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 use maud::{html, Markup};
 
-use crate::services::new_weather::{Forecast, WeatherCode};
+use crate::services::weather::{Forecast, WeatherCode};
 
 impl WeatherCode {
     pub fn to_lucide_icon(&self) -> &'static str {

@@ -2,12 +2,9 @@ use chrono::{NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
-use crate::{user::User, MELBOURNE};
+use crate::user::User;
 
-use super::{
-    new_weather::Forecast,
-    weather::{DayWeather, WeatherService},
-};
+use super::weather::{Forecast, Weather, WeatherService};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Bet {
@@ -43,7 +40,7 @@ pub struct BetRecord {
 }
 
 impl BetRecord {
-    pub fn outcome(&self, weather: &DayWeather) -> BetOutcome {
+    pub fn outcome(&self, weather: &Weather) -> BetOutcome {
         let rain = self.bet.rain == weather.rain;
         let temperature = (self.bet.temperature - weather.temperature).abs() <= self.bet.range;
 
@@ -177,7 +174,7 @@ impl BetService {
         for date in ready_bets {
             let weather = self
                 .weather_service
-                .get_historical(MELBOURNE, date)
+                .get_historical_weather(date)
                 .await
                 .unwrap();
 
@@ -204,7 +201,7 @@ impl BetService {
                     user.data.bets[date].outcome(
                         &self
                             .weather_service
-                            .get_historical(MELBOURNE, *date)
+                            .get_historical_weather(*date)
                             .await
                             .unwrap(),
                     ),

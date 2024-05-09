@@ -34,7 +34,7 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
 
     let forecast = ctx
         .services
-        .new_weather
+        .weather
         .get_forecast(today, next_week)
         .await
         .into_iter()
@@ -84,8 +84,8 @@ async fn get_bet_form(
     let (bet, payout, existing) = if let Some(date) = date {
         let forecast = &ctx
             .services
-            .new_weather
-            .get_daily_forecast(date, (MELBOURNE.latitude, MELBOURNE.longitude))
+            .weather
+            .get_daily_forecast(date, MELBOURNE)
             .await;
 
         fn round(n: f64, points: usize) -> f64 {
@@ -134,8 +134,8 @@ async fn place_bet(
     // Determine the forecast for the day
     let forecast = ctx
         .services
-        .new_weather
-        .get_daily_forecast(date, (MELBOURNE.latitude, MELBOURNE.longitude))
+        .weather
+        .get_daily_forecast(date, MELBOURNE)
         .await;
     let payout = Payout::max_payout(&bet, date, &forecast);
 
@@ -151,8 +151,8 @@ async fn calculate_payout(
 ) -> Markup {
     let forecast = ctx
         .services
-        .new_weather
-        .get_daily_forecast(date, (MELBOURNE.latitude, MELBOURNE.longitude))
+        .weather
+        .get_daily_forecast(date, MELBOURNE)
         .await;
     let payout = Payout::max_payout(&bet_form.into(), date, &forecast);
 
@@ -173,7 +173,7 @@ async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
                 .iter()
                 .map(|(date, outcome)| {
                     let bet_record = user.data.bets.get(date).unwrap().clone();
-                    let weather = ctx.services.weather.get_historical(MELBOURNE, date.clone());
+                    let weather = ctx.services.weather.get_historical_weather(*date);
 
                     async move {
                         let weather = weather.await.unwrap();

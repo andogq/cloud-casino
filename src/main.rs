@@ -5,17 +5,14 @@ mod user;
 use std::{env, net::Ipv4Addr, str::FromStr};
 
 use axum::{routing::get, Router};
-use services::{weather::Point, Services};
+use services::Services;
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 use time::macros::datetime;
 use tower_http::services::ServeDir;
 use tower_sessions::{cookie::SameSite, Expiry, SessionManagerLayer};
 use tower_sessions_sqlx_store::SqliteStore;
 
-const MELBOURNE: Point = Point {
-    latitude: -37.814,
-    longitude: 144.9633,
-};
+const MELBOURNE: (f64, f64) = (-37.814, 144.9633);
 
 #[derive(Clone)]
 pub struct Ctx {

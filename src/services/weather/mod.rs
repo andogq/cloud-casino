@@ -1,7 +1,7 @@
 mod api;
 mod db;
 
-use chrono::{Duration, NaiveDate};
+use chrono::{Duration, NaiveDate, Utc};
 use num_enum::{FromPrimitive, IntoPrimitive};
 use reqwest::Client;
 use sqlx::SqlitePool;
@@ -85,11 +85,7 @@ impl WeatherService {
         // Get the missing days, and add them to the forecast
         for (date, day_forecast) in self
             .api
-            .get_forecast(
-                filter_start,
-                filter_end,
-                (MELBOURNE.latitude, MELBOURNE.longitude),
-            )
+            .get_forecast(filter_start, filter_end, MELBOURNE)
             .await
         {
             // See if the day is already in the provided forecast
@@ -109,6 +105,23 @@ impl WeatherService {
 
         forecast
     }
+
+    pub async fn get_historical_weather(&self, date: NaiveDate) -> Option<Weather> {
+        // Check if it's in the DB
+        if let Some(weather) = self.db.get_historical_weather(date).await {
+            return Some(weather);
+        }
+
+        // Get the weather from the API
+        let (_, weather) = self.api.get_historical(date, date, MELBOURNE).await.pop()?;
+
+        // Save it in the DB for later
+        self.db
+            .save_historical_weather(date, Utc::now(), &weather)
+            .await;
+
+        Some(weather)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -117,6 +130,12 @@ pub struct Forecast {
     pub minimum_temperature: f64,
     pub maximum_temperature: f64,
     pub weather_code: WeatherCode,
+}
+
+#[derive(Clone, Debug)]
+pub struct Weather {
+    pub rain: bool,
+    pub temperature: f64,
 }
 
 #[derive(Clone, Copy, Debug, IntoPrimitive, FromPrimitive, sqlx::Type)]
