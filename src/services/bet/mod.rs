@@ -110,15 +110,8 @@ impl BetService {
     pub async fn place(&self, user: &mut User, date: NaiveDate, bet: Bet, payout: Payout) {
         // Insert the bet into the database
         self.db
-            .upsert_bet(date, &BetRecord::new(bet, payout), user)
+            .upsert_bet(&BetRecord::new(date, bet, payout), user)
             .await;
-
-        // Update the list of oustanding bets
-        if !user.data.outstanding_bets.contains(&date) {
-            user.data.outstanding_bets.push(date);
-        }
-
-        user.update_session().await;
     }
 
     /// Find a bet for the given date.
@@ -128,34 +121,20 @@ impl BetService {
 
     // Payout all ready bets for the user
     pub async fn payout(&self, user: &mut User) {
-        let now = Utc::now().date_naive();
+        let ready_bets = self.db.ready_bets().await;
 
-        let mut ready_bets = vec![];
-        for date in std::mem::take(&mut user.data.outstanding_bets) {
-            if date < now {
-                // Date is ready to be processed
-                ready_bets.push(date);
-            } else {
-                // Not ready to be processed yet, add it back
-                user.data.outstanding_bets.push(date);
-            }
-        }
-
-        for date in ready_bets {
-            // Find the assocuated bet
-            let bet = self.db.find_bet(date).await.unwrap();
-
+        for bet in ready_bets {
             // Determine the outcome
             let outcome = bet.outcome(
                 &self
                     .weather_service
-                    .get_historical_weather(date)
+                    .get_historical_weather(bet.date)
                     .await
                     .unwrap(),
             );
 
             // Mark this bet as payed out
-            self.db.record_payout(date, &outcome).await;
+            self.db.record_payout(bet.date, &outcome).await;
 
             // Update the user's balance
             user.data.balance += outcome.payout;
@@ -166,19 +145,18 @@ impl BetService {
 
     pub async fn get_ready(&self, user: &User) -> Vec<(NaiveDate, BetOutcome)> {
         use futures::stream::{FuturesUnordered, StreamExt};
-        let now = Utc::now().date_naive();
 
-        user.data
-            .outstanding_bets
-            .iter()
-            .filter(|date| date < &&now)
-            .map(|date| async {
+        self.db
+            .ready_bets()
+            .await
+            .into_iter()
+            .map(|bet| async move {
                 (
-                    date.clone(),
-                    self.db.find_bet(*date).await.unwrap().outcome(
+                    bet.date,
+                    bet.outcome(
                         &self
                             .weather_service
-                            .get_historical_weather(*date)
+                            .get_historical_weather(bet.date)
                             .await
                             .unwrap(),
                     ),

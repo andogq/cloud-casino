@@ -3,7 +3,7 @@ use axum::{
     extract::FromRequestParts,
     http::{request::Parts, StatusCode},
 };
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use tower_sessions::Session;
@@ -44,8 +44,6 @@ pub struct Bet {
 pub struct UserData {
     pub last_request: DateTime<Utc>,
     pub balance: f64,
-
-    pub outstanding_bets: Vec<NaiveDate>,
 }
 
 impl Default for UserData {
@@ -53,8 +51,6 @@ impl Default for UserData {
         Self {
             last_request: Utc::now(),
             balance: INITIAL_BALANCE,
-
-            outstanding_bets: Vec::new(),
         }
     }
 }

@@ -1,4 +1,5 @@
 use chrono::{NaiveDate, Utc};
+use futures::StreamExt;
 use sqlx::SqlitePool;
 
 use crate::user::User;
@@ -7,6 +8,8 @@ use super::{Bet, BetOutcome, Payout};
 
 /// Entire bet record, as it appears in the database.
 pub struct BetRecord {
+    pub date: NaiveDate,
+
     /// Temperature that was guessed
     pub temperature: f64,
 
@@ -27,8 +30,9 @@ pub struct BetRecord {
 }
 
 impl BetRecord {
-    pub fn new(bet: Bet, payout: Payout) -> Self {
+    pub fn new(date: NaiveDate, bet: Bet, payout: Payout) -> Self {
         Self {
+            date,
             temperature: bet.temperature,
             range: bet.range,
             rain: bet.rain,
@@ -81,7 +85,7 @@ impl Db {
         Self { pool }
     }
 
-    pub async fn upsert_bet(&self, date: NaiveDate, bet: &BetRecord, user: &mut User) {
+    pub async fn upsert_bet(&self, bet: &BetRecord, user: &mut User) {
         let user_id = 1;
         let now = Utc::now();
 
@@ -93,7 +97,7 @@ impl Db {
                 FROM bets
                 WHERE user = ? AND date = ?;",
             user_id,
-            date
+            bet.date
         )
         .fetch_optional(&self.pool)
         .await
@@ -107,7 +111,7 @@ impl Db {
                 ON CONFLICT (user, date) DO UPDATE
                     SET temperature = ?, range = ?, rain = ?, wager = ?, rain_payout = ?, temperature_payout = ?, time_placed = ?;",
             user_id,
-            date,
+            bet.date,
             bet.temperature,
             bet.range,
             bet.rain,
@@ -141,7 +145,7 @@ impl Db {
 
         sqlx::query_as!(
             BetRecord,
-            "SELECT temperature, range, rain, wager, rain_payout, temperature_payout
+            "SELECT date, temperature, range, rain, wager, rain_payout, temperature_payout
                 FROM bets
                 WHERE user = ? and date = ?;",
             user_id,
@@ -168,5 +172,32 @@ impl Db {
         .execute(&self.pool)
         .await
         .unwrap();
+    }
+
+    /// Retrieve all bets that are ready to be paid out.
+    pub async fn ready_bets(&self) -> Vec<BetRecord> {
+        let user_id = 1;
+
+        // WARN: This will mix UTC dates with user locale dates
+        let now = Utc::now().date_naive();
+
+        // Select all bets that don't have a corresponding payout
+        sqlx::query_as!(
+            BetRecord,
+            "SELECT date, temperature, range, rain, wager, rain_payout, temperature_payout
+                FROM bets
+                WHERE user = ?
+                    AND date < ?
+                    AND (
+                        SELECT COUNT(*)
+                            FROM payouts
+                            WHERE payouts.bet_date = bets.date
+                    ) = 0;",
+            user_id,
+            now
+        )
+        .fetch_all(&self.pool)
+        .await
+        .unwrap()
     }
 }
