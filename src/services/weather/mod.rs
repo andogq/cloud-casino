@@ -57,7 +57,8 @@ impl WeatherService {
         let mut forecast = self.db.get_forecast_range(start, end, now).await;
 
         // If all the days are present, then no need to continue
-        if forecast.len() != (end - start).num_days().abs() as usize {
+        let days_inclusive = (end - start).num_days().abs() as usize + 1;
+        if forecast.len() == days_inclusive {
             return forecast;
         }
 
