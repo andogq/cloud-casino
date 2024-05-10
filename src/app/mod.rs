@@ -95,7 +95,7 @@ async fn get_bet_form(
             (n * f).round() / f
         }
 
-        let bet = user.data.bets.get(&date).map(|record| record.bet.clone());
+        let bet = ctx.services.bet.find_bet(date).await;
 
         let existing = bet.is_some();
 
@@ -174,7 +174,7 @@ async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
             &ready_payouts
                 .iter()
                 .map(|(date, outcome)| {
-                    let bet_record = user.data.bets.get(date).unwrap().clone();
+                    let bet = ctx.services.bet.find_bet(*date);
                     let weather = ctx.services.weather.get_historical_weather(*date);
 
                     async move {
@@ -182,7 +182,7 @@ async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
 
                         views::payouts::Payout {
                             date: date.clone(),
-                            bet: bet_record.bet,
+                            bet: bet.await.unwrap(),
                             rain: weather.rain,
                             rain_correct: outcome.rain,
                             temperature: weather.temperature,

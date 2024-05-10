@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use axum::{
     async_trait,
     extract::FromRequestParts,
@@ -9,8 +7,6 @@ use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use tower_sessions::Session;
-
-use crate::services::bet::BetRecord;
 
 const INITIAL_BALANCE: f64 = 100.0;
 
@@ -49,8 +45,6 @@ pub struct UserData {
     pub last_request: DateTime<Utc>,
     pub balance: f64,
 
-    pub bets: HashMap<NaiveDate, BetRecord>,
-
     pub outstanding_bets: Vec<NaiveDate>,
 }
 
@@ -60,24 +54,7 @@ impl Default for UserData {
             last_request: Utc::now(),
             balance: INITIAL_BALANCE,
 
-            bets: HashMap::from_iter([(
-                NaiveDate::from_ymd_opt(2024, 01, 03).unwrap(),
-                BetRecord {
-                    bet: crate::services::bet::Bet {
-                        wager: 100.0,
-                        rain: true,
-                        temperature: 21.0,
-                        range: 2.0,
-                    },
-                    locked_payout: crate::services::bet::Payout {
-                        rain: 40.0,
-                        temperature: 50.0,
-                    },
-                    outcome: None,
-                },
-            )]),
-
-            outstanding_bets: Vec::from_iter([NaiveDate::from_ymd_opt(2024, 01, 03).unwrap()]),
+            outstanding_bets: Vec::new(),
         }
     }
 }

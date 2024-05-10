@@ -6,7 +6,7 @@ use sqlx::SqlitePool;
 
 use crate::user::User;
 
-use self::db::Db;
+use self::db::{BetRecord, Db};
 
 use super::weather::{Forecast, Weather, WeatherService};
 
@@ -25,41 +25,30 @@ pub struct Bet {
     pub wager: f64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BetOutcome {
-    pub rain: bool,
-    pub temperature: bool,
-    pub payout: f64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BetRecord {
-    pub bet: Bet,
-
-    /// Payout calculated when bet was placed
-    pub locked_payout: Payout,
-
-    /// Outcome of the bet
-    pub outcome: Option<BetOutcome>,
-}
-
 impl BetRecord {
     pub fn outcome(&self, weather: &Weather) -> BetOutcome {
-        let rain = self.bet.rain == weather.rain;
-        let temperature = (self.bet.temperature - weather.temperature).abs() <= self.bet.range;
+        let rain = self.rain == weather.rain;
+        let temperature = (self.temperature - weather.temperature).abs() <= self.range;
 
         return BetOutcome {
             rain,
             temperature,
             payout: [
-                rain.then_some(self.locked_payout.rain),
-                temperature.then_some(self.locked_payout.temperature),
+                rain.then_some(self.rain_payout),
+                temperature.then_some(self.temperature_payout),
             ]
             .into_iter()
             .flatten()
             .sum(),
         };
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BetOutcome {
+    pub rain: bool,
+    pub temperature: bool,
+    pub payout: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -77,6 +66,7 @@ impl Payout {
     const RAIN_MULTIPLIER: f64 = 1.25;
 
     fn day_multiplier(date: NaiveDate) -> f64 {
+        // TODO: This must be locale aware, currently is mixing UTC date with local date
         Self::DAY_MULTIPLIER * (date - Utc::now().date_naive()).num_days() as f64
     }
 
@@ -116,9 +106,12 @@ impl BetService {
         }
     }
 
+    /// Place a bet for the given user and date with the specified payout.
     pub async fn place(&self, user: &mut User, date: NaiveDate, bet: Bet, payout: Payout) {
         // Insert the bet into the database
-        self.db.upsert_bet(date, &bet, user).await;
+        self.db
+            .upsert_bet(date, &BetRecord::new(bet, payout), user)
+            .await;
 
         // Update the list of oustanding bets
         if !user.data.outstanding_bets.contains(&date) {
@@ -130,9 +123,10 @@ impl BetService {
 
     /// Find a bet for the given date.
     pub async fn find_bet(&self, date: NaiveDate) -> Option<Bet> {
-        self.db.find_bet(date).await
+        self.db.find_bet(date).await.map(|bet| bet.into())
     }
 
+    // Payout all ready bets for the user
     pub async fn payout(&self, user: &mut User) {
         let now = Utc::now().date_naive();
 
@@ -148,16 +142,23 @@ impl BetService {
         }
 
         for date in ready_bets {
-            let weather = self
-                .weather_service
-                .get_historical_weather(date)
-                .await
-                .unwrap();
+            // Find the assocuated bet
+            let bet = self.db.find_bet(date).await.unwrap();
 
-            let bet = user.data.bets.get_mut(&date).unwrap();
-            bet.outcome = Some(bet.outcome(&weather));
+            // Determine the outcome
+            let outcome = bet.outcome(
+                &self
+                    .weather_service
+                    .get_historical_weather(date)
+                    .await
+                    .unwrap(),
+            );
 
-            user.data.balance += bet.outcome.as_ref().unwrap().payout;
+            // Mark this bet as payed out
+            self.db.record_payout(date, &outcome).await;
+
+            // Update the user's balance
+            user.data.balance += outcome.payout;
         }
 
         user.update_session().await;
@@ -174,7 +175,7 @@ impl BetService {
             .map(|date| async {
                 (
                     date.clone(),
-                    user.data.bets[date].outcome(
+                    self.db.find_bet(*date).await.unwrap().outcome(
                         &self
                             .weather_service
                             .get_historical_weather(*date)

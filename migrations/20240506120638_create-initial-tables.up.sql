@@ -16,6 +16,10 @@ CREATE TABLE bets (
     -- When the bet was placed or updated
     time_placed DATETIME NOT NULL,
 
+    -- Payout amounts for the different components of the bet
+    rain_payout FLOAT NOT NULL,
+    temperature_payout FLOAT NOT NULL,
+
     -- Each user can only place a bet on one date
     PRIMARY KEY (user, date)
 );
@@ -61,6 +65,10 @@ CREATE TABLE payouts (
     bet_date DATE NOT NULL,
 
     payout_date DATETIME NOT NULL,
+
+    -- Whether the rain and temperature were correct
+    rain_correct BOOLEAN NOT NULL,
+    temperature_correct BOOLEAN NOT NULL,
 
     PRIMARY KEY (bet_user, bet_date),
     FOREIGN KEY (bet_user, bet_date) REFERENCES bets (user, date)
