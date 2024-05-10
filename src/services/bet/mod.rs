@@ -1,8 +1,12 @@
+mod db;
+
 use chrono::{NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
 use crate::user::User;
+
+use self::db::Db;
 
 use super::weather::{Forecast, Weather, WeatherService};
 
@@ -100,54 +104,21 @@ impl Payout {
 
 #[derive(Clone)]
 pub struct BetService {
-    pool: SqlitePool,
     weather_service: WeatherService,
+    db: Db,
 }
 
 impl BetService {
     pub(super) fn new(pool: SqlitePool, weather_service: WeatherService) -> Self {
         Self {
-            pool,
             weather_service,
+            db: Db::new(pool),
         }
     }
 
     pub async fn place(&self, user: &mut User, date: NaiveDate, bet: Bet, payout: Payout) {
-        // Find any previous bets on this day
-        let previous_wager = sqlx::query!(
-            "DELETE FROM bets WHERE user = ? AND date = ? RETURNING wager;",
-            1,
-            date
-        )
-        .fetch_optional(&self.pool)
-        .await
-        .unwrap()
-        .map(|record| record.wager)
-        .unwrap_or(0.0);
-
-        // Restore the user's balance from the previous bet
-        user.data.balance += previous_wager;
-
-        // Add the new bet into the DB
-        sqlx::query(
-            "
-            INSERT INTO bets (user, date, temperature, range, rain, wager, time_placed)
-                VALUES (?, ?, ?, ?, ?, ?, ?);
-        ",
-        )
-        .bind(1)
-        .bind(date)
-        .bind(bet.temperature)
-        .bind(bet.range)
-        .bind(bet.rain)
-        .bind(bet.wager)
-        .bind(Utc::now())
-        .execute(&self.pool)
-        .await
-        .unwrap();
-
-        // Take the balance from the user for this bet
-        user.data.balance -= bet.wager;
+        // Insert the bet into the database
+        self.db.upsert_bet(date, &bet, user).await;
 
         // Update the list of oustanding bets
         if !user.data.outstanding_bets.contains(&date) {
@@ -155,6 +126,11 @@ impl BetService {
         }
 
         user.update_session().await;
+    }
+
+    /// Find a bet for the given date.
+    pub async fn find_bet(&self, date: NaiveDate) -> Option<Bet> {
+        self.db.find_bet(date).await
     }
 
     pub async fn payout(&self, user: &mut User) {

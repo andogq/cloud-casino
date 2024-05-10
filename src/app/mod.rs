@@ -39,17 +39,19 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
         .await
         .into_iter()
         .map(|(date, forecast)| {
-            // TODO: Fetch this from the bet service
-            let placed = 10.0;
-            // let placed = user
-            //     .data
-            //     .bets
-            //     .get(&date)
-            //     .map(|bet| bet.bet.wager)
-            //     .unwrap_or_default();
-            (date, forecast, placed)
+            let bet = ctx.services.bet.find_bet(date);
+
+            async move {
+                (
+                    date,
+                    forecast,
+                    bet.await.map(|bet| bet.wager).unwrap_or_default(),
+                )
+            }
         })
-        .collect();
+        .collect::<futures::stream::FuturesOrdered<_>>()
+        .collect::<Vec<_>>()
+        .await;
 
     let balance = user.data.balance;
 

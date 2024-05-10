@@ -44,7 +44,7 @@ pub struct Bet {
     pub payout: Option<Payout>,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UserData {
     pub last_request: DateTime<Utc>,
     pub balance: f64,
