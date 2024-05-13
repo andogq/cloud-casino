@@ -8,8 +8,6 @@ use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use tower_sessions::Session;
 
-const INITIAL_BALANCE: f64 = 100.0;
-
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Payout {
     pub date: OffsetDateTime,
@@ -43,14 +41,12 @@ pub struct Bet {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UserData {
     pub last_request: DateTime<Utc>,
-    pub balance: f64,
 }
 
 impl Default for UserData {
     fn default() -> Self {
         Self {
             last_request: Utc::now(),
-            balance: INITIAL_BALANCE,
         }
     }
 }

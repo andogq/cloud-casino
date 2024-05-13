@@ -242,4 +242,11 @@ impl Db {
         .await
         .unwrap()
     }
+
+    pub async fn get_balance(&self, user: i64) -> f64 {
+        sqlx::query_scalar!("SELECT balance FROM users WHERE id = ?;", user)
+            .fetch_one(&self.pool)
+            .await
+            .unwrap()
+    }
 }

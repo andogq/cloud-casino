@@ -56,7 +56,7 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
         .collect::<Vec<_>>()
         .await;
 
-    let balance = user.data.balance;
+    let balance = ctx.services.bet.get_balance(user_id).await;
 
     let ready_payouts = ctx.services.bet.get_ready(user_id).await.len();
 
@@ -86,6 +86,7 @@ async fn get_bet_form(
 ) -> Markup {
     let date = date.map(|date| date.0.date);
     let user_id = user.session.get::<i64>("user_id").await.unwrap().unwrap();
+    let balance = ctx.services.bet.get_balance(user_id).await;
 
     let (bet, payout, existing) = if let Some(date) = date {
         let forecast = &ctx
@@ -111,7 +112,7 @@ async fn get_bet_form(
             ),
             range: 5.0,
             rain: forecast.rain > 0.5,
-            wager: round(user.data.balance * 0.1, 2),
+            wager: round(balance * 0.1, 2),
         });
 
         let payout = Payout::max_payout(&bet, date, forecast).total();
@@ -169,7 +170,7 @@ async fn calculate_payout(
 
 async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
     let user_id = user.session.get::<i64>("user_id").await.unwrap().unwrap();
-    let balance = user.data.balance;
+    let balance = ctx.services.bet.get_balance(user_id).await;
 
     let ready_payouts = ctx.services.bet.get_ready(user_id).await;
 

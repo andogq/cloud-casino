@@ -159,4 +159,8 @@ impl BetService {
             .collect::<Vec<_>>()
             .await
     }
+
+    pub async fn get_balance(&self, user: i64) -> f64 {
+        self.db.get_balance(user).await
+    }
 }
