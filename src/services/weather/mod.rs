@@ -28,17 +28,19 @@ impl WeatherService {
     /// Get the forecast for the provided date. Given that forecasts change over time, only one
     /// forecast is generated per day.
     pub async fn get_daily_forecast(&self, date: NaiveDate, location: (f64, f64)) -> Forecast {
-        let now = chrono::offset::Utc::now();
-
         // Check if a forecast already exists for this date
-        if let Some(forecast) = self.db.get_day_forecast(date, now).await {
+        if let Some(forecast) = self
+            .db
+            .get_day_forecast(date, Utc::now().date_naive())
+            .await
+        {
             forecast
         } else {
             // Fetch the forecast from the weather API
             let forecast = self.api.get_daily_forecast(date, location).await;
 
             // Save it into the DB
-            self.db.save_forecast(date, now, &forecast).await;
+            self.db.save_forecast(date, &forecast).await;
 
             // Return the forecast
             forecast
@@ -51,10 +53,11 @@ impl WeatherService {
         start: NaiveDate,
         end: NaiveDate,
     ) -> Vec<(NaiveDate, Forecast)> {
-        let now = chrono::offset::Utc::now();
-
         // Fetch the saved forecast for this date range
-        let mut forecast = self.db.get_forecast_range(start, end, now).await;
+        let mut forecast = self
+            .db
+            .get_forecast_range(start, end, Utc::now().date_naive())
+            .await;
 
         // If all the days are present, then no need to continue
         let days_inclusive = (end - start).num_days().abs() as usize + 1;
@@ -95,7 +98,7 @@ impl WeatherService {
             }
 
             // Save the collection in the DB
-            self.db.save_forecast(date, now, &day_forecast).await;
+            self.db.save_forecast(date, &day_forecast).await;
 
             // Add the forecast to the collection
             forecast.push((date, day_forecast));
@@ -117,9 +120,7 @@ impl WeatherService {
         let (_, weather) = self.api.get_historical(date, date, MELBOURNE).await.pop()?;
 
         // Save it in the DB for later
-        self.db
-            .save_historical_weather(date, Utc::now(), &weather)
-            .await;
+        self.db.save_historical_weather(date, &weather).await;
 
         Some(weather)
     }

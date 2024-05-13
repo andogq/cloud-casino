@@ -1,13 +1,11 @@
 use chrono::{NaiveDate, Utc};
-use futures::StreamExt;
 use sqlx::SqlitePool;
-
-use crate::user::User;
 
 use super::{Bet, BetOutcome, Payout};
 
 /// Entire bet record, as it appears in the database.
 pub struct BetRecord {
+    /// Date the bet is for
     pub date: NaiveDate,
 
     /// Temperature that was guessed
@@ -85,32 +83,30 @@ impl Db {
         Self { pool }
     }
 
-    pub async fn upsert_bet(&self, bet: &BetRecord, user: &mut User) {
-        let user_id = 1;
-        let now = Utc::now();
-
-        let tx = self.pool.begin().await.unwrap();
+    pub async fn upsert_bet(&self, user: i64, bet: &BetRecord) {
+        let mut tx = self.pool.begin().await.unwrap();
 
         // Get the current wager
         let previous_wager = sqlx::query_scalar!(
             "SELECT wager
                 FROM bets
                 WHERE user = ? AND date = ?;",
-            user_id,
+            user,
             bet.date
         )
-        .fetch_optional(&self.pool)
+        .fetch_optional(tx.as_mut())
         .await
         .unwrap()
         .unwrap_or_default();
 
         // Insert the new bet
         sqlx::query!(
-            "INSERT INTO bets (user, date, temperature, range, rain, wager, rain_payout, temperature_payout, time_placed)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            "INSERT INTO bets (user, date, temperature, range, rain, wager, rain_payout, temperature_payout)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (user, date) DO UPDATE
-                    SET temperature = ?, range = ?, rain = ?, wager = ?, rain_payout = ?, temperature_payout = ?, time_placed = ?;",
-            user_id,
+                    SET temperature = ?, range = ?, rain = ?, wager = ?, rain_payout = ?, temperature_payout = ?;",
+            // Insert values
+            user,
             bet.date,
             bet.temperature,
             bet.range,
@@ -118,37 +114,40 @@ impl Db {
             bet.wager,
             bet.rain_payout,
             bet.temperature_payout,
-            now,
+            // Update values
             bet.temperature,
             bet.range,
             bet.rain,
             bet.wager,
             bet.rain_payout,
             bet.temperature_payout,
-            now
         )
-        .execute(&self.pool)
+        .execute(tx.as_mut())
         .await
         .unwrap();
 
-        // TODO: Update the user's balance by the difference
-        // sqlx::query!("UPDATE users SET balance = balance + ? WHERE id = ?;")
-        user.data.balance += previous_wager - bet.wager;
-        user.update_session().await;
+        // Update the user's balance
+        let d_balance = previous_wager - bet.wager;
+        sqlx::query!(
+            "UPDATE users SET balance = balance + ? WHERE id = ?;",
+            d_balance,
+            user
+        )
+        .execute(tx.as_mut())
+        .await
+        .unwrap();
 
         // Finalise the transaction
         tx.commit().await.unwrap();
     }
 
-    pub async fn find_bet(&self, date: NaiveDate) -> Option<BetRecord> {
-        let user_id = 1;
-
+    pub async fn find_bet(&self, user: i64, date: NaiveDate) -> Option<BetRecord> {
         sqlx::query_as!(
             BetRecord,
             "SELECT date, temperature, range, rain, wager, rain_payout, temperature_payout
                 FROM bets
                 WHERE user = ? and date = ?;",
-            user_id,
+            user,
             date,
         )
         .fetch_optional(&self.pool)
@@ -156,28 +155,71 @@ impl Db {
         .unwrap()
     }
 
-    pub async fn record_payout(&self, date: NaiveDate, outcome: &BetOutcome) {
-        let user_id = 1;
-        let now = Utc::now();
+    pub async fn record_payout(&self, user: i64, date: NaiveDate, outcome: &BetOutcome) {
+        // Begin a new transaction
+        let mut tx = self.pool.begin().await.unwrap();
 
+        // Record the payout
         sqlx::query!(
-            "INSERT INTO payouts (bet_user, bet_date, payout_date, rain_correct, temperature_correct)
-                VALUES (?, ?, ?, ?, ?);",
-            user_id,
+            "INSERT INTO payouts (user, date, rain_correct, temperature_correct)
+                VALUES (?, ?, ?, ?);",
+            user,
             date,
-            now,
             outcome.rain,
             outcome.temperature
         )
-        .execute(&self.pool)
+        .execute(tx.as_mut())
         .await
         .unwrap();
+
+        sqlx::query!(
+            "UPDATE users
+                -- Perform the actual balance update
+                SET balance = users.balance + d.balance
+                FROM (
+                    -- Build the balance change amount
+                    SELECT (
+                        IFNULL(
+                            -- Select the temperature payout from the bet
+                            (SELECT temperature_payout
+                                FROM bets
+                                -- Only include the temperature payout if it's correct
+                                WHERE ?
+                                    AND date = ?
+                                    AND user = ?),
+                            0
+                        ) + IFNULL(
+                            -- Do the same for the rain payout
+                            (SELECT rain_payout
+                                FROM bets
+                                WHERE ?
+                                    AND date = ?
+                                    AND user = ?),
+                            0
+                        )
+                    ) AS balance
+                ) AS d
+                WHERE id = ?;",
+            // Temperature payout information
+            outcome.temperature,
+            date,
+            user,
+            // Rain payout information
+            outcome.rain,
+            date,
+            user,
+            // User to update
+            user
+        )
+        .execute(tx.as_mut())
+        .await
+        .unwrap();
+
+        tx.commit().await.unwrap();
     }
 
     /// Retrieve all bets that are ready to be paid out.
-    pub async fn ready_bets(&self) -> Vec<BetRecord> {
-        let user_id = 1;
-
+    pub async fn ready_bets(&self, user: i64) -> Vec<BetRecord> {
         // WARN: This will mix UTC dates with user locale dates
         let now = Utc::now().date_naive();
 
@@ -191,9 +233,9 @@ impl Db {
                     AND (
                         SELECT COUNT(*)
                             FROM payouts
-                            WHERE payouts.bet_date = bets.date
+                            WHERE payouts.date = bets.date
                     ) = 0;",
-            user_id,
+            user,
             now
         )
         .fetch_all(&self.pool)

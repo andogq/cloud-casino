@@ -4,8 +4,6 @@ use chrono::{NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
-use crate::user::User;
-
 use self::db::{BetRecord, Db};
 
 use super::weather::{Forecast, Weather, WeatherService};
@@ -107,21 +105,21 @@ impl BetService {
     }
 
     /// Place a bet for the given user and date with the specified payout.
-    pub async fn place(&self, user: &mut User, date: NaiveDate, bet: Bet, payout: Payout) {
+    pub async fn place(&self, user: i64, date: NaiveDate, bet: Bet, payout: Payout) {
         // Insert the bet into the database
         self.db
-            .upsert_bet(&BetRecord::new(date, bet, payout), user)
+            .upsert_bet(user, &BetRecord::new(date, bet, payout))
             .await;
     }
 
     /// Find a bet for the given date.
-    pub async fn find_bet(&self, date: NaiveDate) -> Option<Bet> {
-        self.db.find_bet(date).await.map(|bet| bet.into())
+    pub async fn find_bet(&self, user: i64, date: NaiveDate) -> Option<Bet> {
+        self.db.find_bet(user, date).await.map(|bet| bet.into())
     }
 
     // Payout all ready bets for the user
-    pub async fn payout(&self, user: &mut User) {
-        let ready_bets = self.db.ready_bets().await;
+    pub async fn payout(&self, user: i64) {
+        let ready_bets = self.db.ready_bets(user).await;
 
         for bet in ready_bets {
             // Determine the outcome
@@ -134,20 +132,15 @@ impl BetService {
             );
 
             // Mark this bet as payed out
-            self.db.record_payout(bet.date, &outcome).await;
-
-            // Update the user's balance
-            user.data.balance += outcome.payout;
+            self.db.record_payout(user, bet.date, &outcome).await;
         }
-
-        user.update_session().await;
     }
 
-    pub async fn get_ready(&self, user: &User) -> Vec<(NaiveDate, BetOutcome)> {
+    pub async fn get_ready(&self, user: i64) -> Vec<(NaiveDate, BetOutcome)> {
         use futures::stream::{FuturesUnordered, StreamExt};
 
         self.db
-            .ready_bets()
+            .ready_bets(user)
             .await
             .into_iter()
             .map(|bet| async move {

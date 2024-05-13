@@ -33,6 +33,8 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
         .date();
     let next_week = today + Duration::weeks(1);
 
+    let user_id = user.session.get::<i64>("user_id").await.unwrap().unwrap();
+
     let forecast = ctx
         .services
         .weather
@@ -40,7 +42,7 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
         .await
         .into_iter()
         .map(|(date, forecast)| {
-            let bet = ctx.services.bet.find_bet(date);
+            let bet = ctx.services.bet.find_bet(user_id, date);
 
             async move {
                 (
@@ -56,7 +58,7 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
 
     let balance = user.data.balance;
 
-    let ready_payouts = ctx.services.bet.get_ready(&user).await.len();
+    let ready_payouts = ctx.services.bet.get_ready(user_id).await.len();
 
     let payout = 0.0;
 
@@ -83,6 +85,7 @@ async fn get_bet_form(
     date: Option<Query<DateQueryParam>>,
 ) -> Markup {
     let date = date.map(|date| date.0.date);
+    let user_id = user.session.get::<i64>("user_id").await.unwrap().unwrap();
 
     let (bet, payout, existing) = if let Some(date) = date {
         let forecast = &ctx
@@ -96,7 +99,7 @@ async fn get_bet_form(
             (n * f).round() / f
         }
 
-        let bet = ctx.services.bet.find_bet(date).await;
+        let bet = ctx.services.bet.find_bet(user_id, date).await;
 
         let existing = bet.is_some();
 
@@ -122,7 +125,7 @@ async fn get_bet_form(
 
 async fn place_bet(
     State(ctx): State<Ctx>,
-    mut user: User,
+    user: User,
     Path(date): Path<NaiveDate>,
     Form(bet_form): Form<BetForm>,
 ) -> Redirect {
@@ -134,6 +137,8 @@ async fn place_bet(
         wager: bet_form.wager,
     };
 
+    let user_id = user.session.get::<i64>("user_id").await.unwrap().unwrap();
+
     // Determine the forecast for the day
     let forecast = ctx
         .services
@@ -142,7 +147,7 @@ async fn place_bet(
         .await;
     let payout = Payout::max_payout(&bet, date, &forecast);
 
-    ctx.services.bet.place(&mut user, date, bet, payout).await;
+    ctx.services.bet.place(user_id, date, bet, payout).await;
 
     Redirect::to("/")
 }
@@ -163,9 +168,10 @@ async fn calculate_payout(
 }
 
 async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
+    let user_id = user.session.get::<i64>("user_id").await.unwrap().unwrap();
     let balance = user.data.balance;
 
-    let ready_payouts = ctx.services.bet.get_ready(&user).await;
+    let ready_payouts = ctx.services.bet.get_ready(user_id).await;
 
     views::page(views::shell::render(
         balance,
@@ -175,7 +181,7 @@ async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
             &ready_payouts
                 .iter()
                 .map(|(date, outcome)| {
-                    let bet = ctx.services.bet.find_bet(*date);
+                    let bet = ctx.services.bet.find_bet(user_id, *date);
                     let weather = ctx.services.weather.get_historical_weather(*date);
 
                     async move {
@@ -199,8 +205,9 @@ async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
     ))
 }
 
-async fn perform_payout(State(ctx): State<Ctx>, mut user: User) -> (HxLocation, &'static str) {
-    ctx.services.bet.payout(&mut user).await;
+async fn perform_payout(State(ctx): State<Ctx>, user: User) -> (HxLocation, &'static str) {
+    let user_id = user.session.get::<i64>("user_id").await.unwrap().unwrap();
+    ctx.services.bet.payout(user_id).await;
 
     (HxLocation::from_str("/").unwrap(), "redirecting")
 }

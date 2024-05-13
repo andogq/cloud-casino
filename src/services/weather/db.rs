@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::NaiveDate;
 use sqlx::SqlitePool;
 
 use crate::services::weather::WeatherCode;
@@ -20,10 +20,8 @@ impl Db {
     pub async fn get_day_forecast(
         &self,
         date: NaiveDate,
-        retrieval_date: DateTime<Utc>,
+        retrieval_date: NaiveDate,
     ) -> Option<Forecast> {
-        let retrieval_date = retrieval_date.date_naive();
-
         sqlx::query_as!(
             Forecast,
             "SELECT rain, minimum_temperature, maximum_temperature, weather_code
@@ -44,7 +42,7 @@ impl Db {
         &self,
         start_date: NaiveDate,
         end_date: NaiveDate,
-        retrieval_date: DateTime<Utc>,
+        retrieval_date: NaiveDate,
     ) -> Vec<(NaiveDate, Forecast)> {
         struct Result {
             date: NaiveDate,
@@ -53,8 +51,6 @@ impl Db {
             maximum_temperature: f64,
             weather_code: WeatherCode,
         }
-
-        let retrieval_date = retrieval_date.date_naive();
 
         // Try pull the forecasts for the day that was generated today
         sqlx::query_as!(
@@ -84,17 +80,11 @@ impl Db {
     }
 
     /// Save the forecast for a given day as it was retrived on the provided date.
-    pub async fn save_forecast(
-        &self,
-        date: NaiveDate,
-        retrieval_date: DateTime<Utc>,
-        forecast: &Forecast,
-    ) {
+    pub async fn save_forecast(&self, date: NaiveDate, forecast: &Forecast) {
         sqlx::query!(
-                "INSERT INTO forecasts (date, date_retrieved, rain, minimum_temperature, maximum_temperature, weather_code)
-                    VALUES (?, ?, ?, ?, ?, ?);",
+                "INSERT INTO forecasts (date, rain, minimum_temperature, maximum_temperature, weather_code)
+                    VALUES (?, ?, ?, ?, ?);",
                 date,
-                retrieval_date,
                 forecast.rain,
                 forecast.minimum_temperature,
                 forecast.maximum_temperature,
@@ -120,19 +110,13 @@ impl Db {
     }
 
     /// Save historical weather for some day as if it were retrieved on the given day.
-    pub async fn save_historical_weather(
-        &self,
-        date: NaiveDate,
-        retrieval_date: DateTime<Utc>,
-        weather: &Weather,
-    ) {
+    pub async fn save_historical_weather(&self, date: NaiveDate, weather: &Weather) {
         sqlx::query!(
-            "INSERT INTO historical_weather (date, temperature, rain, date_retrieved)
-                VALUES (?, ?, ?, ?)",
+            "INSERT INTO historical_weather (date, temperature, rain)
+                VALUES (?, ?, ?)",
             date,
             weather.temperature,
             weather.rain,
-            retrieval_date,
         )
         .execute(&self.pool)
         .await

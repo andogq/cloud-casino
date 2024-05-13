@@ -14,14 +14,16 @@ CREATE TABLE bets (
     wager FLOAT NOT NULL,
 
     -- When the bet was placed or updated
-    time_placed DATETIME NOT NULL,
+    time_placed DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     -- Payout amounts for the different components of the bet
     rain_payout FLOAT NOT NULL,
     temperature_payout FLOAT NOT NULL,
 
     -- Each user can only place a bet on one date
-    PRIMARY KEY (user, date)
+    PRIMARY KEY (user, date),
+
+    FOREIGN KEY (user) REFERENCES users(id)
 );
 
 CREATE TABLE forecasts (
@@ -29,7 +31,7 @@ CREATE TABLE forecasts (
     date DATE NOT NULL,
 
     -- Date that the forecast was retrieved
-    date_retrieved DATETIME NOT NULL,
+    date_retrieved DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     -- Whether rain is forecast for this day
     rain FLOAT NOT NULL,
@@ -56,22 +58,24 @@ CREATE TABLE historical_weather (
     rain BOOLEAN NOT NULL,
 
     -- Date that the historical weather was pulled
-    date_retrieved DATETIME NOT NULL
+    date_retrieved DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE payouts (
     -- User and date of the bet
-    bet_user INTEGER NOT NULL,
-    bet_date DATE NOT NULL,
+    user INTEGER NOT NULL,
+    date DATE NOT NULL,
 
-    payout_date DATETIME NOT NULL,
+    -- Date that the payout occurred
+    payout_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     -- Whether the rain and temperature were correct
     rain_correct BOOLEAN NOT NULL,
     temperature_correct BOOLEAN NOT NULL,
 
-    PRIMARY KEY (bet_user, bet_date),
-    FOREIGN KEY (bet_user, bet_date) REFERENCES bets (user, date)
+    PRIMARY KEY (user, date),
+    FOREIGN KEY (user, date) REFERENCES bets(user, date),
+    FOREIGN KEY (user) REFERENCES users(id)
 );
 
 CREATE TABLE states (
@@ -82,7 +86,7 @@ CREATE TABLE states (
     value TEXT NOT NULL,
 
     -- When the value was generated
-    generated DATETIME NOT NULL,
+    generated DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     -- When the value was used
     redeemed DATETIME,
@@ -102,7 +106,7 @@ CREATE TABLE users (
     last_login DATETIME NOT NULL,
 
     -- Date that the user was first created
-    created DATETIME NOT NULL,
+    created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     -- Unique authentication provider and identifier
     auth_provider TEXT NOT NULL,
