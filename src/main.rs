@@ -4,7 +4,8 @@ mod user;
 
 use std::{env, net::Ipv4Addr, str::FromStr};
 
-use axum::{routing::get, Router};
+use axum::{http::HeaderValue, routing::get, Router};
+use reqwest::header::USER_AGENT;
 use services::Services;
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 use time::macros::datetime;
@@ -55,7 +56,22 @@ async fn main() {
         .with_http_only(true)
         .with_expiry(Expiry::AtDateTime(datetime!(2099 - 01 - 01 0:00 UTC)));
 
-    let reqwest_client = reqwest::Client::new();
+    let reqwest_client = reqwest::Client::builder()
+        .default_headers(
+            [(
+                USER_AGENT,
+                HeaderValue::from_str(concat!(
+                    env!("CARGO_PKG_NAME"),
+                    "/",
+                    env!("CARGO_PKG_VERSION")
+                ))
+                .unwrap(),
+            )]
+            .into_iter()
+            .collect(),
+        )
+        .build()
+        .unwrap();
 
     let app = Router::new()
         .merge(app::init())

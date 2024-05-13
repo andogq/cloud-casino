@@ -73,3 +73,40 @@ CREATE TABLE payouts (
     PRIMARY KEY (bet_user, bet_date),
     FOREIGN KEY (bet_user, bet_date) REFERENCES bets (user, date)
 );
+
+CREATE TABLE states (
+    -- Namespace for the state value
+    namespace TEXT NOT NULL,
+
+    -- Actual state value
+    value TEXT NOT NULL,
+
+    -- When the value was generated
+    generated DATETIME NOT NULL,
+
+    -- When the value was used
+    redeemed DATETIME,
+
+    -- Value must be unique within a namespace
+    PRIMARY KEY (namespace, value)
+);
+
+CREATE TABLE users (
+    -- Unique ID for the user
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+
+    -- User's balance
+    balance FLOAT NOT NULL,
+
+    -- Last time user was logged in
+    last_login DATETIME NOT NULL,
+
+    -- Date that the user was first created
+    created DATETIME NOT NULL,
+
+    -- Unique authentication provider and identifier
+    auth_provider TEXT NOT NULL,
+    auth_identifier TEXT NOT NULL,
+
+    UNIQUE (auth_provider, auth_identifier)
+);

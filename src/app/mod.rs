@@ -1,3 +1,4 @@
+mod login;
 mod views;
 
 use std::str::FromStr;
@@ -211,4 +212,5 @@ pub fn init() -> Router<Ctx> {
         .route("/bet/:date", post(place_bet))
         .route("/bet/:date/payout", get(calculate_payout))
         .route("/payout", get(payout).post(perform_payout))
+        .nest("/login", login::init())
 }

@@ -128,9 +128,11 @@ html, body {
     }
 }
 
-button {
+button, a.button {
     font-size: var(--font-size-1);
     font-weight: var(--font-weight-5);
+
+    cursor: pointer;
     
     color: var(--surface-1);
     background: var(--theme);
@@ -142,6 +144,18 @@ button {
     &:disabled {
         opacity: 0.5;
         cursor: default;
+    }
+
+    &:has(.lucide) {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+
+        gap: var(--size-1);
+    }
+
+    &:hover {
+        text-decoration: none;
     }
 }
 
