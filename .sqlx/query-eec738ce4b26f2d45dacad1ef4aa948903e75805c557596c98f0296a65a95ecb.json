@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO states (namespace, value, generated)\n                VALUES (?, ?, ?);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "eec738ce4b26f2d45dacad1ef4aa948903e75805c557596c98f0296a65a95ecb"
+}

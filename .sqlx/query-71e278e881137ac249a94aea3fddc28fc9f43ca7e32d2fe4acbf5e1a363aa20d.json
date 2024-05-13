@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT date, temperature, range, rain, wager, rain_payout, temperature_payout\n                FROM bets\n                WHERE user = ? and date = ?;",
+  "describe": {
+    "columns": [
+      {
+        "name": "date",
+        "ordinal": 0,
+        "type_info": "Date"
+      },
+      {
+        "name": "temperature",
+        "ordinal": 1,
+        "type_info": "Float"
+      },
+      {
+        "name": "range",
+        "ordinal": 2,
+        "type_info": "Float"
+      },
+      {
+        "name": "rain",
+        "ordinal": 3,
+        "type_info": "Bool"
+      },
+      {
+        "name": "wager",
+        "ordinal": 4,
+        "type_info": "Float"
+      },
+      {
+        "name": "rain_payout",
+        "ordinal": 5,
+        "type_info": "Float"
+      },
+      {
+        "name": "temperature_payout",
+        "ordinal": 6,
+        "type_info": "Float"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "71e278e881137ac249a94aea3fddc28fc9f43ca7e32d2fe4acbf5e1a363aa20d"
+}

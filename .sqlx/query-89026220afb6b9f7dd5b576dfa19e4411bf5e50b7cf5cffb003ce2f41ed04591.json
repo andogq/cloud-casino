@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE users\n                -- Perform the actual balance update\n                SET balance = users.balance + d.balance\n                FROM (\n                    -- Build the balance change amount\n                    SELECT (\n                        IFNULL(\n                            -- Select the temperature payout from the bet\n                            (SELECT temperature_payout\n                                FROM bets\n                                -- Only include the temperature payout if it's correct\n                                WHERE ?\n                                    AND date = ?\n                                    AND user = ?),\n                            0\n                        ) + IFNULL(\n                            -- Do the same for the rain payout\n                            (SELECT rain_payout\n                                FROM bets\n                                WHERE ?\n                                    AND date = ?\n                                    AND user = ?),\n                            0\n                        )\n                    ) AS balance\n                ) AS d\n                WHERE id = ?;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "89026220afb6b9f7dd5b576dfa19e4411bf5e50b7cf5cffb003ce2f41ed04591"
+}

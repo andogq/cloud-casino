@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT rain, temperature\n                FROM historical_weather\n                WHERE date = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "rain",
+        "ordinal": 0,
+        "type_info": "Bool"
+      },
+      {
+        "name": "temperature",
+        "ordinal": 1,
+        "type_info": "Float"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "3af748221ac87e797d84610431a263f412073a74837b00b3dbb45a008601cb7b"
+}

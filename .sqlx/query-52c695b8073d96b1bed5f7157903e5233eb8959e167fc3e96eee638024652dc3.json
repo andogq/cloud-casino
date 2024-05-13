@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT wager\n                FROM bets\n                WHERE user = ? AND date = ?;",
+  "describe": {
+    "columns": [
+      {
+        "name": "wager",
+        "ordinal": 0,
+        "type_info": "Float"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "52c695b8073d96b1bed5f7157903e5233eb8959e167fc3e96eee638024652dc3"
+}

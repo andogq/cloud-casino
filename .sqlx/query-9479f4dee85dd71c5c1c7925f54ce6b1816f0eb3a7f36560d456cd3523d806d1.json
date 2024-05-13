@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE states\n                SET redeemed = ?\n                WHERE namespace = ? AND value = ? and redeemed IS NULL\n                RETURNING value;",
+  "describe": {
+    "columns": [
+      {
+        "name": "value",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9479f4dee85dd71c5c1c7925f54ce6b1816f0eb3a7f36560d456cd3523d806d1"
+}
