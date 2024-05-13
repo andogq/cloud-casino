@@ -1,7 +1,8 @@
 use axum::{
     async_trait,
     extract::FromRequestParts,
-    http::{request::Parts, StatusCode},
+    http::request::Parts,
+    response::{IntoResponse, Redirect, Response},
 };
 use tower_sessions::Session;
 
@@ -22,14 +23,16 @@ impl<S> FromRequestParts<S> for UserId
 where
     S: Send + Sync,
 {
-    type Rejection = (StatusCode, &'static str);
+    type Rejection = Response;
 
     /// Perform the extraction.
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let session = Session::from_request_parts(parts, state).await?;
+        let session = Session::from_request_parts(parts, state)
+            .await
+            .map_err(|e| e.into_response())?;
 
         Self::from_session(session)
             .await
-            .ok_or((StatusCode::UNAUTHORIZED, "unauthorised"))
+            .ok_or(Redirect::temporary("/login").into_response())
     }
 }

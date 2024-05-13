@@ -63,6 +63,7 @@ pub fn init() -> Router<Ctx> {
     Router::new()
         .route("/", get(render_login))
         .route("/callback/github", get(callback_github))
+        // TODO: Remove
         .route(
             "/whoami",
             get(|session: Session| async move {
