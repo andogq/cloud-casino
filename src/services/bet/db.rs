@@ -1,6 +1,8 @@
 use chrono::{NaiveDate, Utc};
 use sqlx::SqlitePool;
 
+use crate::user::UserId;
+
 use super::{Bet, BetOutcome, Payout};
 
 /// Entire bet record, as it appears in the database.
@@ -83,7 +85,7 @@ impl Db {
         Self { pool }
     }
 
-    pub async fn upsert_bet(&self, user: i64, bet: &BetRecord) {
+    pub async fn upsert_bet(&self, user: UserId, bet: &BetRecord) {
         let mut tx = self.pool.begin().await.unwrap();
 
         // Get the current wager
@@ -141,7 +143,7 @@ impl Db {
         tx.commit().await.unwrap();
     }
 
-    pub async fn find_bet(&self, user: i64, date: NaiveDate) -> Option<BetRecord> {
+    pub async fn find_bet(&self, user: UserId, date: NaiveDate) -> Option<BetRecord> {
         sqlx::query_as!(
             BetRecord,
             "SELECT date, temperature, range, rain, wager, rain_payout, temperature_payout
@@ -155,7 +157,7 @@ impl Db {
         .unwrap()
     }
 
-    pub async fn record_payout(&self, user: i64, date: NaiveDate, outcome: &BetOutcome) {
+    pub async fn record_payout(&self, user: UserId, date: NaiveDate, outcome: &BetOutcome) {
         // Begin a new transaction
         let mut tx = self.pool.begin().await.unwrap();
 
@@ -219,7 +221,7 @@ impl Db {
     }
 
     /// Retrieve all bets that are ready to be paid out.
-    pub async fn ready_bets(&self, user: i64) -> Vec<BetRecord> {
+    pub async fn ready_bets(&self, user: UserId) -> Vec<BetRecord> {
         // WARN: This will mix UTC dates with user locale dates
         let now = Utc::now().date_naive();
 
@@ -243,7 +245,7 @@ impl Db {
         .unwrap()
     }
 
-    pub async fn get_balance(&self, user: i64) -> f64 {
+    pub async fn get_balance(&self, user: UserId) -> f64 {
         sqlx::query_scalar!("SELECT balance FROM users WHERE id = ?;", user)
             .fetch_one(&self.pool)
             .await

@@ -17,13 +17,13 @@ use serde::Deserialize;
 
 use crate::{
     services::bet::{Bet, Payout},
-    user::User,
+    user::UserId,
     Ctx, MELBOURNE,
 };
 
 use self::views::bet_form::BetForm;
 
-async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
+async fn index(State(ctx): State<Ctx>, user_id: UserId) -> Markup {
     let timezone = "Australia/Melbourne";
 
     // Work out what 'today' is in the local timezone
@@ -32,8 +32,6 @@ async fn index(State(ctx): State<Ctx>, user: User) -> Markup {
         .naive_local()
         .date();
     let next_week = today + Duration::weeks(1);
-
-    let user_id = user.session.get::<i64>("user_id").await.unwrap().unwrap();
 
     let forecast = ctx
         .services
@@ -81,11 +79,10 @@ pub struct DateQueryParam {
 
 async fn get_bet_form(
     State(ctx): State<Ctx>,
-    user: User,
+    user_id: UserId,
     date: Option<Query<DateQueryParam>>,
 ) -> Markup {
     let date = date.map(|date| date.0.date);
-    let user_id = user.session.get::<i64>("user_id").await.unwrap().unwrap();
     let balance = ctx.services.bet.get_balance(user_id).await;
 
     let (bet, payout, existing) = if let Some(date) = date {
@@ -126,7 +123,7 @@ async fn get_bet_form(
 
 async fn place_bet(
     State(ctx): State<Ctx>,
-    user: User,
+    user_id: UserId,
     Path(date): Path<NaiveDate>,
     Form(bet_form): Form<BetForm>,
 ) -> Redirect {
@@ -137,8 +134,6 @@ async fn place_bet(
         rain: bet_form.rain,
         wager: bet_form.wager,
     };
-
-    let user_id = user.session.get::<i64>("user_id").await.unwrap().unwrap();
 
     // Determine the forecast for the day
     let forecast = ctx
@@ -168,8 +163,7 @@ async fn calculate_payout(
     views::bet_form::render_maximum_payout(date, payout.total())
 }
 
-async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
-    let user_id = user.session.get::<i64>("user_id").await.unwrap().unwrap();
+async fn payout(State(ctx): State<Ctx>, user_id: UserId) -> Markup {
     let balance = ctx.services.bet.get_balance(user_id).await;
 
     let ready_payouts = ctx.services.bet.get_ready(user_id).await;
@@ -206,8 +200,7 @@ async fn payout(State(ctx): State<Ctx>, user: User) -> Markup {
     ))
 }
 
-async fn perform_payout(State(ctx): State<Ctx>, user: User) -> (HxLocation, &'static str) {
-    let user_id = user.session.get::<i64>("user_id").await.unwrap().unwrap();
+async fn perform_payout(State(ctx): State<Ctx>, user_id: UserId) -> (HxLocation, &'static str) {
     ctx.services.bet.payout(user_id).await;
 
     (HxLocation::from_str("/").unwrap(), "redirecting")

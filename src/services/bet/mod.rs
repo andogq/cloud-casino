@@ -4,6 +4,8 @@ use chrono::{NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
+use crate::user::UserId;
+
 use self::db::{BetRecord, Db};
 
 use super::weather::{Forecast, Weather, WeatherService};
@@ -105,7 +107,7 @@ impl BetService {
     }
 
     /// Place a bet for the given user and date with the specified payout.
-    pub async fn place(&self, user: i64, date: NaiveDate, bet: Bet, payout: Payout) {
+    pub async fn place(&self, user: UserId, date: NaiveDate, bet: Bet, payout: Payout) {
         // Insert the bet into the database
         self.db
             .upsert_bet(user, &BetRecord::new(date, bet, payout))
@@ -113,12 +115,12 @@ impl BetService {
     }
 
     /// Find a bet for the given date.
-    pub async fn find_bet(&self, user: i64, date: NaiveDate) -> Option<Bet> {
+    pub async fn find_bet(&self, user: UserId, date: NaiveDate) -> Option<Bet> {
         self.db.find_bet(user, date).await.map(|bet| bet.into())
     }
 
     // Payout all ready bets for the user
-    pub async fn payout(&self, user: i64) {
+    pub async fn payout(&self, user: UserId) {
         let ready_bets = self.db.ready_bets(user).await;
 
         for bet in ready_bets {
@@ -136,7 +138,7 @@ impl BetService {
         }
     }
 
-    pub async fn get_ready(&self, user: i64) -> Vec<(NaiveDate, BetOutcome)> {
+    pub async fn get_ready(&self, user: UserId) -> Vec<(NaiveDate, BetOutcome)> {
         use futures::stream::{FuturesUnordered, StreamExt};
 
         self.db
@@ -160,7 +162,7 @@ impl BetService {
             .await
     }
 
-    pub async fn get_balance(&self, user: i64) -> f64 {
+    pub async fn get_balance(&self, user: UserId) -> f64 {
         self.db.get_balance(user).await
     }
 }

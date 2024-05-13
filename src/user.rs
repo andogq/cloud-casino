@@ -3,7 +3,6 @@ use axum::{
     extract::FromRequestParts,
     http::{request::Parts, StatusCode},
 };
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use tower_sessions::Session;
@@ -38,48 +37,20 @@ pub struct Bet {
     pub payout: Option<Payout>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct UserData {
-    pub last_request: DateTime<Utc>,
-}
+#[derive(sqlx::Type, Clone, Copy, Debug)]
+#[sqlx(transparent)]
+pub struct UserId(i64);
 
-impl Default for UserData {
-    fn default() -> Self {
-        Self {
-            last_request: Utc::now(),
-        }
-    }
-}
+impl UserId {
+    const SESSION_KEY: &'static str = "user_id";
 
-pub struct User {
-    pub data: UserData,
-    pub session: Session,
-}
-
-impl User {
-    const SESSION_KEY: &'static str = "user.data";
-
-    pub async fn from_session(session: Session) -> Self {
-        Self {
-            data: session
-                .get::<UserData>(Self::SESSION_KEY)
-                .await
-                .unwrap()
-                .unwrap_or_default(),
-            session,
-        }
-    }
-
-    pub async fn update_session(&self) {
-        self.session
-            .insert(Self::SESSION_KEY, self.data.clone())
-            .await
-            .unwrap();
+    pub async fn from_session(session: Session) -> Option<Self> {
+        Some(Self(session.get::<i64>(Self::SESSION_KEY).await.unwrap()?))
     }
 }
 
 #[async_trait]
-impl<S> FromRequestParts<S> for User
+impl<S> FromRequestParts<S> for UserId
 where
     S: Send + Sync,
 {
@@ -89,10 +60,8 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let session = Session::from_request_parts(parts, state).await?;
 
-        let mut user = Self::from_session(session).await;
-        user.data.last_request = Utc::now();
-        user.update_session().await;
-
-        Ok(user)
+        Self::from_session(session)
+            .await
+            .ok_or((StatusCode::UNAUTHORIZED, "unauthorised"))
     }
 }
