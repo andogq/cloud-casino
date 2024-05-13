@@ -8,9 +8,11 @@ use axum::{http::HeaderValue, routing::get, Router};
 use reqwest::header::USER_AGENT;
 use services::Services;
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
-use time::macros::datetime;
 use tower_http::services::ServeDir;
-use tower_sessions::{cookie::SameSite, Expiry, SessionManagerLayer};
+use tower_sessions::{
+    cookie::{time, SameSite},
+    Expiry, SessionManagerLayer,
+};
 use tower_sessions_sqlx_store::SqliteStore;
 
 const MELBOURNE: (f64, f64) = (-37.814, 144.9633);
@@ -54,7 +56,10 @@ async fn main() {
         .with_secure(true)
         .with_same_site(SameSite::Lax)
         .with_http_only(true)
-        .with_expiry(Expiry::AtDateTime(datetime!(2099 - 01 - 01 0:00 UTC)));
+        .with_expiry(Expiry::AtDateTime(time::OffsetDateTime::new_utc(
+            time::Date::from_calendar_date(2099, time::Month::December, 31).unwrap(),
+            time::Time::MIDNIGHT,
+        )));
 
     let reqwest_client = reqwest::Client::builder()
         .default_headers(
