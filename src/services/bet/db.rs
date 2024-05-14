@@ -130,17 +130,21 @@ impl Db {
 
         // Update the user's balance
         let d_balance = previous_wager - bet.wager;
-        sqlx::query!(
-            "UPDATE users SET balance = balance + ? WHERE id = ?;",
+        let balance = sqlx::query_scalar!(
+            "UPDATE users SET balance = balance + ? WHERE id = ? RETURNING balance;",
             d_balance,
             user
         )
-        .execute(tx.as_mut())
+        .fetch_one(tx.as_mut())
         .await
         .unwrap();
 
-        // Finalise the transaction
-        tx.commit().await.unwrap();
+        if balance >= 0.0 {
+            // Finalise the transaction
+            tx.commit().await.unwrap();
+        } else {
+            tx.rollback().await.unwrap();
+        }
     }
 
     pub async fn find_bet(&self, user: UserId, date: NaiveDate) -> Option<BetRecord> {
