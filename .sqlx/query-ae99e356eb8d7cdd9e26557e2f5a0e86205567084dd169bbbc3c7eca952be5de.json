@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT rain, minimum_temperature, maximum_temperature, weather_code\n                FROM forecasts\n                WHERE date = ? AND DATE(date_retrieved) = ?;",
+  "describe": {
+    "columns": [
+      {
+        "name": "rain",
+        "ordinal": 0,
+        "type_info": "Float"
+      },
+      {
+        "name": "minimum_temperature",
+        "ordinal": 1,
+        "type_info": "Float"
+      },
+      {
+        "name": "maximum_temperature",
+        "ordinal": 2,
+        "type_info": "Float"
+      },
+      {
+        "name": "weather_code",
+        "ordinal": 3,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ae99e356eb8d7cdd9e26557e2f5a0e86205567084dd169bbbc3c7eca952be5de"
+}

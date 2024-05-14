@@ -23,6 +23,11 @@ test-migration:
     # Revert the migration to test the down script
     just sqlx migrate revert
 
+# Undo the latest migration and re-run it
+redo-migration:
+    just sqlx migrate revert
+    just sqlx migrate run
+
 # Apply and run any pending migrations
 apply-migration:
     just sqlx migrate run

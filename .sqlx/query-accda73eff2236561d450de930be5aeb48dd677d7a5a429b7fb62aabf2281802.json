@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO bets (user, date, temperature, range, rain, wager, rain_payout, temperature_payout)\n                VALUES (?, ?, ?, ?, ?, ?, ?, ?)\n                ON CONFLICT (user, date) DO UPDATE\n                    SET temperature = ?, range = ?, rain = ?, wager = ?, rain_payout = ?, temperature_payout = ?;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 14
+    },
+    "nullable": []
+  },
+  "hash": "accda73eff2236561d450de930be5aeb48dd677d7a5a429b7fb62aabf2281802"
+}

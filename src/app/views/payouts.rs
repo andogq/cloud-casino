@@ -1,11 +1,11 @@
+use chrono::NaiveDate;
 use maud::{html, Markup};
-use time::{macros::format_description, Date};
 
 use crate::services::bet::Bet;
 
 pub struct Payout {
     /// Date this payout is for.
-    pub date: Date,
+    pub date: NaiveDate,
 
     /// The bet that was placed.
     pub bet: Bet,
@@ -40,7 +40,7 @@ pub fn render(payouts: &[Payout]) -> Markup {
             #payouts {
                 @for payout in payouts {
                     .pill {
-                        .date { (payout.date.format(format_description!("[weekday repr:short], [month repr:long] [day padding:none] [year]")).unwrap().to_lowercase()) }
+                        .date { (payout.date.format("%a, %B %e %Y").to_string().to_lowercase()) }
 
                         .bet-rain { (rain_icon(payout.bet.rain)) }
 

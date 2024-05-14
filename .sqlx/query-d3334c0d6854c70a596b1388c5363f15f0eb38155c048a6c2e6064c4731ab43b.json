@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO forecasts (date, rain, minimum_temperature, maximum_temperature, weather_code)\n                    VALUES (?, ?, ?, ?, ?);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "d3334c0d6854c70a596b1388c5363f15f0eb38155c048a6c2e6064c4731ab43b"
+}

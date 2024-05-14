@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO historical_weather (date, temperature, rain)\n                VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "4c35e1bb6872132e9c6ef5d20817f3994084bbf58790ff82e119f886afc35e7e"
+}

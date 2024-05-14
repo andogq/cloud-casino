@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO payouts (user, date, rain_correct, temperature_correct)\n                VALUES (?, ?, ?, ?);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "ee7f38dbb4a89e33f8c1b84443aad3d6fcb9a305cc61860e3b8cf39aac026d90"
+}
