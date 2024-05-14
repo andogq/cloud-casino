@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE users SET balance = balance + ? WHERE id = ? RETURNING balance;",
+  "describe": {
+    "columns": [
+      {
+        "name": "balance",
+        "ordinal": 0,
+        "type_info": "Float"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "adc75effb548786dd3e72ff1354bbbebee0419e2535b872db4689ed00804b7f7"
+}
