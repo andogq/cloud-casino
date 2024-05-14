@@ -3,6 +3,7 @@ use maud::{html, Markup};
 pub mod bet_form;
 pub mod forecast;
 pub mod head;
+pub mod login;
 pub mod payouts;
 pub mod shell;
 

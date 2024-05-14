@@ -10,11 +10,7 @@ use tower_sessions::Session;
 
 use crate::Ctx;
 
-use self::views::login::Provider;
-
-use super::views::page;
-
-mod views;
+use super::views::{self, login::Provider, page};
 
 async fn render_login(State(ctx): State<Ctx>) -> Markup {
     page(views::login::render(&[Provider {
