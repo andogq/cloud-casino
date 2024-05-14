@@ -8,15 +8,19 @@ pub struct Provider {
 
 pub fn render(providers: &[Provider]) -> Markup {
     html! {
-        h1 { "Login" }
+        #login-container {
+            h4 { "Cloud Casino" }
 
-        p { "Select a provider to authenticate with:" }
+            h1 { "Login" }
 
-        @for provider in providers {
-            a .button href=(provider.url) {
-                i data-lucide=(provider.icon){}
+            p { "Select a provider to authenticate with:" }
 
-                span { (provider.name) }
+            @for provider in providers {
+                a .button href=(provider.url) {
+                    i data-lucide=(provider.icon){}
+
+                    span { (provider.name) }
+                }
             }
         }
     }
