@@ -1,6 +1,7 @@
 mod db;
 
 use chrono::{NaiveDate, Utc};
+use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
@@ -139,25 +140,25 @@ impl BetService {
     }
 
     pub async fn get_ready(&self, user: UserId) -> Vec<(NaiveDate, BetOutcome)> {
-        use futures::stream::{FuturesUnordered, StreamExt};
+        use futures::stream::FuturesUnordered;
 
         self.db
             .ready_bets(user)
             .await
             .into_iter()
             .map(|bet| async move {
-                (
+                Some((
                     bet.date,
                     bet.outcome(
                         &self
                             .weather_service
                             .get_historical_weather(bet.date)
-                            .await
-                            .unwrap(),
+                            .await?,
                     ),
-                )
+                ))
             })
             .collect::<FuturesUnordered<_>>()
+            .filter_map(|weather| async { weather })
             .collect::<Vec<_>>()
             .await
     }

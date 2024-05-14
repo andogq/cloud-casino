@@ -58,7 +58,8 @@ impl Api {
                     ],
                 },
             )
-            .await;
+            .await
+            .unwrap();
 
         (0..)
             .map_while(|i| {
@@ -89,7 +90,7 @@ impl Api {
             parameters: &["temperature_2m_mean", "precipitation_sum"],
         };
 
-        #[derive(Deserialize)]
+        #[derive(Debug, Clone, Default, Deserialize)]
         struct WeatherResponse {
             temperature_2m_mean: Vec<f64>,
             precipitation_sum: Vec<f64>,
@@ -116,11 +117,13 @@ impl Api {
         let mut weather = self
             .request::<WeatherResponse>(ApiSource::Archive, request.clone())
             .await
+            .unwrap_or_default()
             .process();
 
         let forecast = self
             .request::<WeatherResponse>(ApiSource::Forecast, request)
             .await
+            .unwrap_or_default()
             .process();
 
         // Merge weather and forecast
@@ -138,7 +141,11 @@ impl Api {
     }
 
     /// Internal helper for making a request to the weather API.
-    async fn request<'de, T: Deserialize<'de>>(&self, source: ApiSource, request: Request) -> T {
+    async fn request<'de, T: Deserialize<'de>>(
+        &self,
+        source: ApiSource,
+        request: Request,
+    ) -> Option<T> {
         let url = Url::parse_with_params(&source.to_string(), request.into_iter()).unwrap();
 
         // Make the response
@@ -148,7 +155,7 @@ impl Api {
         let mut body = response.json::<Value>().await.unwrap();
 
         // Extract the 'daily' key and deserialise the value
-        T::deserialize(body["daily"].take()).unwrap()
+        T::deserialize(body["daily"].take()).ok()
     }
 }
 
