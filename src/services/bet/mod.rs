@@ -64,7 +64,7 @@ pub struct Payout {
 impl Payout {
     const MAX_TEMPERATURE_MULTIPLIER: f64 = 5.0;
     const DAY_MULTIPLIER: f64 = 0.2;
-    const RAIN_MULTIPLIER: f64 = 1.25;
+    const RAIN_MULTIPLIER: f64 = 0.75;
 
     fn day_multiplier(date: NaiveDate) -> f64 {
         // TODO: This must be locale aware, currently is mixing UTC date with local date
@@ -76,9 +76,10 @@ impl Payout {
     }
 
     pub fn temperature_multiplier(date: NaiveDate, bet: &Bet, forecast: &Forecast) -> f64 {
-        Self::day_multiplier(date)
-            + (bet.range / (forecast.maximum_temperature - forecast.minimum_temperature)
-                * Self::MAX_TEMPERATURE_MULTIPLIER)
+        let x = 1.0 - (bet.range / (forecast.maximum_temperature - forecast.minimum_temperature));
+        let y = x.clamp(0.0, 1.0).powf(3.0);
+
+        Self::day_multiplier(date) + (y * Self::MAX_TEMPERATURE_MULTIPLIER)
     }
 
     pub fn max_payout(bet: &Bet, date: NaiveDate, forecast: &Forecast) -> Self {
