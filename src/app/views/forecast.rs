@@ -21,7 +21,10 @@ impl WeatherCode {
 
 pub fn render(days: Vec<(NaiveDate, Forecast, f64)>, selected: Option<NaiveDate>) -> Markup {
     html! {
-        form #forecast hx-get="/bet" hx-trigger="change" hx-target="#bet-form" hx-swap="outerHTML" {
+        form #forecast
+            hx-get="/bet" hx-trigger="change"
+            hx-target="#bet-form" hx-swap="outerHTML"
+            hx-indicator="#bet-form" hx-disabled-elt="#bet-form input, #bet-form button" {
             .days {
                 label .deselect {
                     input type="radio" name="date" value="null" checked[selected.is_none()];

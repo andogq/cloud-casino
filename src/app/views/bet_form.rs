@@ -109,7 +109,7 @@ pub fn render(
         form #bet-form .peek
             autocomplete="off"
             action=[date.map(|date| format!("/bet/{date}"))] method="post"
-            hx-boost="true" hx-disabled-elt="this"
+            hx-boost="true" hx-disabled-elt="#bet-form input, #bet-form button"
         {
             #rain-guess .pill {
                 @let sun_value = value.as_ref().map(|value| value.rain == false).unwrap_or(false);
