@@ -10,7 +10,7 @@ pub mod shell;
 pub fn page(body: Markup) -> Markup {
     html! {
         (maud::DOCTYPE)
-        html {
+        html lang="en" {
             head {
                 link rel="stylesheet" type="text/css" href="/app.css";
                 link rel="stylesheet" type="text/css" href="https://unpkg.com/open-props";
@@ -24,6 +24,9 @@ pub fn page(body: Markup) -> Markup {
                 script defer src="//unpkg.com/lucide" {}
 
                 meta name="viewport" content="width=device-width, initial-scale=1.0";
+                meta charset="utf-8";
+                meta name="description" content="Bet (fake) money on the weather!";
+                meta name="theme-color" content="#006CCF";
 
                 script defer src="/main.js" {}
             }
