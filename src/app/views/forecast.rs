@@ -24,7 +24,7 @@ pub fn render(days: Vec<(NaiveDate, Forecast, f64)>, selected: Option<NaiveDate>
         form #forecast
             hx-get="/bet" hx-trigger="change"
             hx-target="#bet-form" hx-swap="outerHTML"
-            hx-indicator="#bet-form" hx-disabled-elt="#bet-form input, #bet-form button" {
+            hx-indicator="#bet-form" {
             .days {
                 label .deselect {
                     input type="radio" name="date" value="null" checked[selected.is_none()];

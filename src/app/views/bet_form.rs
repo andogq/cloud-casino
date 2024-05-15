@@ -142,6 +142,10 @@ pub fn render(
                 @if replace { "re-" }
                 "place bet"
             }
+
+            .htmx-indicator {
+                .spinner {}
+            }
         }
     }
 }
