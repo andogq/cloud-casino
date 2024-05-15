@@ -332,6 +332,7 @@ main {
     
     gap: var(--size-2);
     padding: var(--size-3);
+    padding-bottom: calc(env(safe-area-inset-bottom) + var(--size-3));
     margin: 0 var(--size-3);
 }
 
