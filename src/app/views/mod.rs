@@ -17,6 +17,7 @@ pub fn page(body: Markup) -> Markup {
                 link rel="stylesheet" type="text/css" href="https://unpkg.com/open-props/normalize.light.min.css";
 
                 link rel="icon mask-icon" href="/favicon.svg";
+                link rel="manifest" href="/app.webmanifest";
                 title { "Cloud Casino" }
 
                 script defer src="//unpkg.com/alpinejs" {}
