@@ -6,6 +6,7 @@ use crate::user::UserId;
 use super::{Bet, BetOutcome, Payout};
 
 /// Entire bet record, as it appears in the database.
+#[derive(Debug, Clone)]
 pub struct BetRecord {
     /// Date the bet is for
     pub date: NaiveDate,

@@ -128,7 +128,7 @@ impl Api {
 
         // Merge weather and forecast
         let mut date = start;
-        while date != end {
+        while date <= end {
             if !weather.iter().any(|&(d, _)| d == date) {
                 // Add the missing day from the forecast
                 weather.push(forecast.iter().find(|&(d, _)| *d == date).unwrap().clone());
