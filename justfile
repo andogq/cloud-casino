@@ -7,6 +7,9 @@ default:
 dev:
     cargo watch -c -x run -i static -i data
 
+run:
+    cargo run
+
 # Build the docker image
 build:
     docker build -t cloud-casino .
