@@ -241,6 +241,7 @@ impl Db {
                         SELECT COUNT(*)
                             FROM payouts
                             WHERE payouts.date = bets.date
+                                AND payouts.user = bets.user
                     ) = 0;",
             user,
             now

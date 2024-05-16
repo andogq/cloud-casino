@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT date, temperature, range, rain, wager, rain_payout, temperature_payout\n                FROM bets\n                WHERE user = ?\n                    AND date < ?\n                    AND (\n                        SELECT COUNT(*)\n                            FROM payouts\n                            WHERE payouts.date = bets.date\n                    ) = 0;",
+  "query": "SELECT date, temperature, range, rain, wager, rain_payout, temperature_payout\n                FROM bets\n                WHERE user = ?\n                    AND date < ?\n                    AND (\n                        SELECT COUNT(*)\n                            FROM payouts\n                            WHERE payouts.date = bets.date\n                                AND payouts.user = bets.user\n                    ) = 0;",
   "describe": {
     "columns": [
       {
@@ -52,5 +52,5 @@
       false
     ]
   },
-  "hash": "ae1d33a979f70c51e9ea4991834c0c8fe4e3b97c29acb7983908dea1baa0571e"
+  "hash": "21ff9917c3fba02ca04ab1984f54ef218576ffa9eada51fcb98663cf25530059"
 }
