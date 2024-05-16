@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use sqlx::SqlitePool;
+use sqlx::{error::DatabaseError, Error, SqlitePool};
 
 use crate::services::weather::WeatherCode;
 
@@ -110,8 +110,12 @@ impl Db {
     }
 
     /// Save historical weather for some day as if it were retrieved on the given day.
-    pub async fn save_historical_weather(&self, date: NaiveDate, weather: &Weather) {
-        sqlx::query!(
+    pub async fn save_historical_weather(
+        &self,
+        date: NaiveDate,
+        weather: &Weather,
+    ) -> Result<(), Box<dyn DatabaseError>> {
+        if let Err(Error::Database(e)) = sqlx::query!(
             "INSERT INTO historical_weather (date, temperature, rain)
                 VALUES (?, ?, ?)",
             date,
@@ -120,6 +124,12 @@ impl Db {
         )
         .execute(&self.pool)
         .await
-        .unwrap();
+        {
+            if !e.is_unique_violation() {
+                return Err(e);
+            }
+        }
+
+        Ok(())
     }
 }

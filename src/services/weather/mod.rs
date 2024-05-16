@@ -120,7 +120,10 @@ impl WeatherService {
         let (_, weather) = self.api.get_historical(date, date, MELBOURNE).await.pop()?;
 
         // Save it in the DB for later
-        self.db.save_historical_weather(date, &weather).await;
+        self.db
+            .save_historical_weather(date, &weather)
+            .await
+            .unwrap();
 
         Some(weather)
     }
