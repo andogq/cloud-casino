@@ -127,6 +127,10 @@ html, body {
                 outline: none;
             }
         }
+
+        &:has(input:invalid) {
+            outline: var(--border-size-2) solid var(--red-5);
+        }
     }
 }
 

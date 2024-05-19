@@ -18,7 +18,7 @@ fn input(
 
             .pill {
                 i data-lucide=(icon.as_ref()) {}
-                input type="text" name=(name.as_ref()) value=(value.as_ref()) disabled[disabled];
+                input type="text" inputmode="numeric" pattern="\\d+\\.?\\d{0,2}" name=(name.as_ref()) value=(value.as_ref()) disabled[disabled];
 
                 @if let Some(after) = after {
                     span { (after.as_ref()) }
@@ -90,6 +90,7 @@ pub fn render_maximum_payout(date: NaiveDate, payout: f64) -> Markup {
     html! {
         p #maximum-payout
             hx-get=(format!("/bet/{date}/payout")) hx-trigger="input from:closest form" hx-include="#bet-form input"
+            hx-validate="true"
         {
             "maximum payout: "
             (format!("${payout:.2}"))
@@ -110,6 +111,7 @@ pub fn render(
             autocomplete="off"
             action=[date.map(|date| format!("/bet/{date}"))] method="post"
             hx-boost="true" hx-disabled-elt="#bet-form input, #bet-form button" hx-disinherit="hx-disabled-elt"
+            hx-validate="true"
         {
             #rain-guess .pill {
                 @let sun_value = value.as_ref().map(|value| value.rain == false).unwrap_or(false);
