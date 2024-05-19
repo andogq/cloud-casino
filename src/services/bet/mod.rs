@@ -110,6 +110,11 @@ impl BetService {
 
     /// Place a bet for the given user and date with the specified payout.
     pub async fn place(&self, user: UserId, date: NaiveDate, bet: Bet, payout: Payout) {
+        if bet.wager < 0.0 {
+            // TODO: Throw a better error here
+            return;
+        }
+
         // Insert the bet into the database
         self.db
             .upsert_bet(user, &BetRecord::new(date, bet, payout))
