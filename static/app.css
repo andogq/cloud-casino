@@ -70,7 +70,18 @@ html, body {
     
     padding: var(--size-2);
 
-    &:has(*:disabled) {
+    position: relative;
+
+    overflow: hidden;
+
+    &:has(*:disabled)::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+
         --stripe-a: var(--surface-3);
         --stripe-b: var(--surface-4);
 
@@ -81,6 +92,7 @@ html, body {
             var(--stripe-b) 10px,
             var(--stripe-b) 20px
         );
+        opacity: 0.5;
     }
 }
 
