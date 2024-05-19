@@ -127,7 +127,7 @@ impl BetService {
         payout: Payout,
     ) -> Result<(), BetError> {
         // Can't place bets that are less than zero
-        if bet.wager < 0.0 {
+        if bet.wager <= 0.0 {
             return Err(BetError::NegativeBet);
         }
 
