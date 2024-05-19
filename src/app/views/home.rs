@@ -39,6 +39,11 @@ pub fn render(providers: Option<&[Provider]>) -> Markup {
             p {
                 "Payouts will be available from 10am the following day."
             }
+
+            p {
+                "made by "
+                a href="https://ando.gq" target="_blank" { "ando.gq" }
+            }
         }
     }
 }
