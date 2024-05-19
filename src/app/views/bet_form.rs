@@ -11,14 +11,18 @@ fn input(
     value: impl AsRef<str>,
     after: Option<impl AsRef<str>>,
     disabled: bool,
+    negative: bool,
 ) -> Markup {
+    // Allow a negative sign in the pattern if the number may be zero
+    let pattern = format!("{}\\d+\\.?\\d{{0,2}}", if negative { "-?" } else { "" });
+
     html! {
         label .icon-input {
             p .label { (label.as_ref()) }
 
             .pill {
                 i data-lucide=(icon.as_ref()) {}
-                input type="text" inputmode="numeric" pattern="\\d+\\.?\\d{0,2}" name=(name.as_ref()) value=(value.as_ref()) disabled[disabled];
+                input type="text" inputmode="numeric" pattern=(pattern) name=(name.as_ref()) value=(value.as_ref()) disabled[disabled];
 
                 @if let Some(after) = after {
                     span { (after.as_ref()) }
@@ -123,14 +127,14 @@ pub fn render(
 
             #temperature {
                 @let temperature_value = value.as_ref().map(|value| value.temperature.to_string()).unwrap_or_default();
-                (input("temperature", "temperature?", "thermometer", temperature_value, Some("°"), disabled))
+                (input("temperature", "temperature?", "thermometer", temperature_value, Some("°"), disabled, true))
 
                 @let range_value = value.as_ref().map(|value| value.range.to_string()).unwrap_or_default();
-                (input("range", "range?", "diff", range_value, Some("°"), disabled))
+                (input("range", "range?", "diff", range_value, Some("°"), disabled, false))
             }
 
             @let wager_value = value.as_ref().map(|value| value.wager.to_string()).unwrap_or_default();
-            (input("wager", "wager?", "badge-dollar-sign", wager_value, Option::<&str>::None, disabled))
+            (input("wager", "wager?", "badge-dollar-sign", wager_value, Option::<&str>::None, disabled, false))
 
             @if let Some(date) = date {
                 (render_maximum_payout(date, maximum_payout))
