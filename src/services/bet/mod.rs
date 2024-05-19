@@ -102,6 +102,9 @@ pub enum BetError {
 
     #[error("cannot create a bet that's less than $0")]
     NegativeBet,
+
+    #[error("temperature range cannot be less than 0")]
+    NegativeRange,
 }
 
 #[derive(Clone)]
@@ -129,6 +132,11 @@ impl BetService {
         // Can't place bets that are less than zero
         if bet.wager <= 0.0 {
             return Err(BetError::NegativeBet);
+        }
+
+        // Make sure that the range is not below zero
+        if bet.range <= 0.0 {
+            return Err(BetError::NegativeRange);
         }
 
         // Determine today's date
