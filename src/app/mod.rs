@@ -129,6 +129,14 @@ async fn get_bet_form(
     let bet = ctx.services.bet.find_bet(user_id, date).await;
 
     let existing = bet.is_some();
+    let today = Utc::now().with_timezone(&Melbourne).naive_local().date();
+    let bet_form_variant = if date == today {
+        BetFormVariant::Today
+    } else if existing {
+        BetFormVariant::Replace
+    } else {
+        BetFormVariant::Normal
+    };
 
     let bet = bet.unwrap_or_else(|| Bet {
         temperature: round(
@@ -138,19 +146,16 @@ async fn get_bet_form(
         ),
         range: 5.0,
         rain: forecast.rain > 0.5,
-        wager: round(balance * 0.1, 2),
+        wager: if let BetFormVariant::Today = bet_form_variant {
+            // Today is selected, but no bet provided
+            0.0
+        } else {
+            // A future day is provided, pre-fill a wager
+            round(balance * 0.1, 2)
+        },
     });
 
     let payout = Payout::max_payout(&bet, date, forecast).total();
-
-    let today = Utc::now().with_timezone(&Melbourne).naive_local().date();
-    let bet_form_variant = if date == today {
-        BetFormVariant::Today
-    } else if existing {
-        BetFormVariant::Replace
-    } else {
-        BetFormVariant::Normal
-    };
 
     views::bet_form::render(Some(date), Some(bet.into()), payout, bet_form_variant)
 }
