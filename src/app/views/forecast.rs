@@ -26,12 +26,12 @@ pub struct ForecastDay {
     pub user_bet: Option<f64>,
 }
 
-pub fn render(days: Vec<ForecastDay>, selected: Option<NaiveDate>) -> Markup {
+pub fn render(days: Vec<ForecastDay>, selected: Option<NaiveDate>, disabled: bool) -> Markup {
     html! {
         form #forecast
             hx-get="/bet" hx-trigger="change"
-            hx-target="#bet-form" hx-swap="outerHTML"
-            hx-indicator="#bet-form" {
+            hx-target=".bet-form-target" hx-indicator=".bet-form-target"
+            hx-swap="outerHTML" {
             .days {
                 label .deselect {
                     input type="radio" name="date" value="null" checked[selected.is_none()];
@@ -41,7 +41,7 @@ pub fn render(days: Vec<ForecastDay>, selected: Option<NaiveDate>) -> Markup {
                     @let checked = selected.map(|d| d == date).unwrap_or(false);
                     label .weather-tile {
                         input type="radio" name="date" autocomplete="off"
-                            value=(date) checked[checked];
+                            value=(date) checked[checked] disabled[disabled];
 
                         p .day {
                             (date.format("%a").to_string())

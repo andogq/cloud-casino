@@ -17,7 +17,7 @@ use maud::{html, Markup};
 use serde::Deserialize;
 
 use crate::{
-    app::views::bet_form::BetFormVariant,
+    app::views::{bet_form::BetFormVariant, login::Provider},
     services::bet::{Bet, Payout},
     user::UserId,
     Ctx, MELBOURNE,
@@ -73,16 +73,28 @@ async fn index(State(ctx): State<Ctx>, user_id: Option<UserId>) -> Markup {
         ("cloud casino".to_string(), 0)
     };
 
-    let payout = 0.0;
-
     views::page(views::shell::render(
         hero,
         ready_payouts,
         true,
         html! {
-            (views::forecast::render(forecast, None))
+            (views::forecast::render(forecast, None, !user_id.is_some()))
 
-            (views::bet_form::render(None, None, payout, BetFormVariant::Normal))
+            (views::home::render(
+                (!user_id.is_some()).then_some(
+                    &[Provider {
+                        name: "GitHub".to_string(),
+                        icon: "github".to_string(),
+                        url: ctx
+                            .services
+                            .oauth
+                            .generate_authorization_url("github")
+                            .await
+                            .unwrap()
+                            .to_string(),
+                    }]
+                ),
+            ))
         },
     ))
 }
@@ -97,44 +109,42 @@ async fn get_bet_form(
     user_id: UserId,
     date: Option<Query<DateQueryParam>>,
 ) -> Markup {
-    let date = date.map(|date| date.0.date);
-    let balance = ctx.services.bet.get_balance(user_id).await;
-
-    let (bet, payout, existing) = if let Some(date) = date {
-        let forecast = &ctx
-            .services
-            .weather
-            .get_daily_forecast(date, MELBOURNE)
-            .await;
-
-        fn round(n: f64, points: usize) -> f64 {
-            let f = 10f64.powi(points as i32);
-            (n * f).round() / f
-        }
-
-        let bet = ctx.services.bet.find_bet(user_id, date).await;
-
-        let existing = bet.is_some();
-
-        let bet = bet.unwrap_or_else(|| Bet {
-            temperature: round(
-                forecast.minimum_temperature
-                    + ((forecast.maximum_temperature - forecast.minimum_temperature) / 2.0),
-                2,
-            ),
-            range: 5.0,
-            rain: forecast.rain > 0.5,
-            wager: round(balance * 0.1, 2),
-        });
-
-        let payout = Payout::max_payout(&bet, date, forecast).total();
-        (Some(bet.into()), payout, existing)
-    } else {
-        (None, 0.0, false)
+    let Some(date) = date.map(|date| date.0.date) else {
+        return views::home::render(None);
     };
 
+    let balance = ctx.services.bet.get_balance(user_id).await;
+
+    let forecast = &ctx
+        .services
+        .weather
+        .get_daily_forecast(date, MELBOURNE)
+        .await;
+
+    fn round(n: f64, points: usize) -> f64 {
+        let f = 10f64.powi(points as i32);
+        (n * f).round() / f
+    }
+
+    let bet = ctx.services.bet.find_bet(user_id, date).await;
+
+    let existing = bet.is_some();
+
+    let bet = bet.unwrap_or_else(|| Bet {
+        temperature: round(
+            forecast.minimum_temperature
+                + ((forecast.maximum_temperature - forecast.minimum_temperature) / 2.0),
+            2,
+        ),
+        range: 5.0,
+        rain: forecast.rain > 0.5,
+        wager: round(balance * 0.1, 2),
+    });
+
+    let payout = Payout::max_payout(&bet, date, forecast).total();
+
     let today = Utc::now().with_timezone(&Melbourne).naive_local().date();
-    let bet_form_variant = if date.map(|date| date == today).unwrap_or(false) {
+    let bet_form_variant = if date == today {
         BetFormVariant::Today
     } else if existing {
         BetFormVariant::Replace
@@ -142,7 +152,7 @@ async fn get_bet_form(
         BetFormVariant::Normal
     };
 
-    views::bet_form::render(date, bet, payout, bet_form_variant)
+    views::bet_form::render(Some(date), Some(bet.into()), payout, bet_form_variant)
 }
 
 async fn place_bet(

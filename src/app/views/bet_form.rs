@@ -123,7 +123,7 @@ pub fn render(
     let disabled = value.is_none() || matches!(variant, BetFormVariant::Today);
 
     html! {
-        form #bet-form .peek
+        form #bet-form .peek .bet-form-target
             autocomplete="off"
             action=[date.map(|date| format!("/bet/{date}"))] method="post"
             hx-boost="true" hx-disabled-elt="#bet-form input, #bet-form button" hx-disinherit="hx-disabled-elt"

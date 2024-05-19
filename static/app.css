@@ -284,7 +284,6 @@ main {
     background: var(--surface-1);
 
     max-height: 75vh;
-    overflow: hidden;
     
     display: flex;
     flex-direction: column;
@@ -331,6 +330,10 @@ main {
                 }
             }
         }
+    }
+
+    &:not(:has(#home)) {
+        overflow-y: hidden;
     }
 }
 
@@ -552,3 +555,17 @@ main {
         transform: rotate(360deg);
     }
 } 
+
+#home {
+    padding: var(--size-3);
+    padding-bottom: calc(env(safe-area-inset-bottom) + var(--size-3));
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-3);
+    align-items: center;
+
+    & > p {
+        width: 100%;
+    }
+}
