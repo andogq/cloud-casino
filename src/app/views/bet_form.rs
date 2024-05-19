@@ -102,13 +102,25 @@ pub fn render_maximum_payout(date: NaiveDate, payout: f64) -> Markup {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum BetFormVariant {
+    /// The 'standard' variation of the bet form
+    Normal,
+
+    /// Bet form is to re-place an existing bet
+    Replace,
+
+    /// Bet form is for today's bet
+    Today,
+}
+
 pub fn render(
     date: Option<NaiveDate>,
     value: Option<BetForm>,
     maximum_payout: f64,
-    replace: bool,
+    variant: BetFormVariant,
 ) -> Markup {
-    let disabled = value.is_none();
+    let disabled = value.is_none() || matches!(variant, BetFormVariant::Today);
 
     html! {
         form #bet-form .peek
@@ -145,8 +157,11 @@ pub fn render(
             }
 
             button type="submit" #bet-button disabled[disabled] {
-                @if replace { "re-" }
-                "place bet"
+                @match variant {
+                    BetFormVariant::Normal => "place bet",
+                    BetFormVariant::Replace => "re-place bet",
+                    BetFormVariant::Today => "today's bet",
+                }
             }
 
             .htmx-indicator {

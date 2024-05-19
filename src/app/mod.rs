@@ -11,11 +11,13 @@ use axum::{
 };
 use axum_htmx::{HxLocation, HxRetarget};
 use chrono::{Duration, NaiveDate, Utc};
+use chrono_tz::Australia::Melbourne;
 use futures::{stream::FuturesUnordered, StreamExt};
 use maud::{html, Markup};
 use serde::Deserialize;
 
 use crate::{
+    app::views::bet_form::BetFormVariant,
     services::bet::{Bet, Payout},
     user::UserId,
     Ctx, MELBOURNE,
@@ -67,7 +69,7 @@ async fn index(State(ctx): State<Ctx>, user_id: UserId) -> Markup {
         html! {
             (views::forecast::render(forecast, None))
 
-            (views::bet_form::render(None, None, payout, false))
+            (views::bet_form::render(None, None, payout, BetFormVariant::Normal))
         },
     ))
 }
@@ -118,7 +120,16 @@ async fn get_bet_form(
         (None, 0.0, false)
     };
 
-    views::bet_form::render(date, bet, payout, existing)
+    let today = Utc::now().with_timezone(&Melbourne).naive_local().date();
+    let bet_form_variant = if date.map(|date| date == today).unwrap_or(false) {
+        BetFormVariant::Today
+    } else if existing {
+        BetFormVariant::Replace
+    } else {
+        BetFormVariant::Normal
+    };
+
+    views::bet_form::render(date, bet, payout, bet_form_variant)
 }
 
 async fn place_bet(
