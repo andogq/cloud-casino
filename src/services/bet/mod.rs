@@ -95,6 +95,15 @@ impl Payout {
     }
 }
 
+#[derive(Clone, Debug, thiserror::Error)]
+pub enum BetError {
+    #[error("cannot create a bet for today")]
+    Today,
+
+    #[error("cannot create a bet that's less than $0")]
+    NegativeBet,
+}
+
 #[derive(Clone)]
 pub struct BetService {
     weather_service: WeatherService,
@@ -110,20 +119,32 @@ impl BetService {
     }
 
     /// Place a bet for the given user and date with the specified payout.
-    pub async fn place(&self, user: UserId, date: NaiveDate, bet: Bet, payout: Payout) {
+    pub async fn place(
+        &self,
+        user: UserId,
+        date: NaiveDate,
+        bet: Bet,
+        payout: Payout,
+    ) -> Result<(), BetError> {
+        // Can't place bets that are less than zero
+        if bet.wager < 0.0 {
+            return Err(BetError::NegativeBet);
+        }
+
         // Determine today's date
         let today = Utc::now().with_timezone(&Melbourne).naive_local().date();
 
         // Make sure not betting on today, and that the bet amount isn't below zero
-        if bet.wager < 0.0 || date == today {
-            // TODO: Throw a better error here
-            return;
+        if date == today {
+            return Err(BetError::Today);
         }
 
         // Insert the bet into the database
         self.db
             .upsert_bet(user, &BetRecord::new(date, bet, payout))
             .await;
+
+        Ok(())
     }
 
     /// Find a bet for the given date.

@@ -9,7 +9,7 @@ use axum::{
     routing::{get, post},
     Form, Router,
 };
-use axum_htmx::HxLocation;
+use axum_htmx::{HxLocation, HxRetarget};
 use chrono::{Duration, NaiveDate, Utc};
 use futures::{stream::FuturesUnordered, StreamExt};
 use maud::{html, Markup};
@@ -126,7 +126,7 @@ async fn place_bet(
     user_id: UserId,
     Path(date): Path<NaiveDate>,
     Form(bet_form): Form<BetForm>,
-) -> Redirect {
+) -> Result<Redirect, (HxRetarget, String)> {
     // Construct the bet
     let bet = Bet {
         temperature: bet_form.temperature,
@@ -143,9 +143,18 @@ async fn place_bet(
         .await;
     let payout = Payout::max_payout(&bet, date, &forecast);
 
-    ctx.services.bet.place(user_id, date, bet, payout).await;
+    ctx.services
+        .bet
+        .place(user_id, date, bet, payout)
+        .await
+        .map_err(|bet_error| {
+            (
+                HxRetarget("#maximum-payout".to_string()),
+                bet_error.to_string(),
+            )
+        })?;
 
-    Redirect::to("/")
+    Ok(Redirect::to("/"))
 }
 
 async fn calculate_payout(
