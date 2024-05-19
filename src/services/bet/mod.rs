@@ -1,6 +1,7 @@
 mod db;
 
 use chrono::{NaiveDate, Utc};
+use chrono_tz::Australia::Melbourne;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
@@ -110,7 +111,11 @@ impl BetService {
 
     /// Place a bet for the given user and date with the specified payout.
     pub async fn place(&self, user: UserId, date: NaiveDate, bet: Bet, payout: Payout) {
-        if bet.wager < 0.0 {
+        // Determine today's date
+        let today = Utc::now().with_timezone(&Melbourne).naive_local().date();
+
+        // Make sure not betting on today, and that the bet amount isn't below zero
+        if bet.wager < 0.0 || date == today {
             // TODO: Throw a better error here
             return;
         }
