@@ -23,9 +23,9 @@ use crate::{
     Ctx, MELBOURNE,
 };
 
-use self::views::bet_form::BetForm;
+use self::views::{bet_form::BetForm, forecast::ForecastDay};
 
-async fn index(State(ctx): State<Ctx>, user_id: UserId) -> Markup {
+async fn index(State(ctx): State<Ctx>, user_id: Option<UserId>) -> Markup {
     let timezone = "Australia/Melbourne";
 
     // Work out what 'today' is in the local timezone
@@ -42,28 +42,41 @@ async fn index(State(ctx): State<Ctx>, user_id: UserId) -> Markup {
         .await
         .into_iter()
         .map(|(date, forecast)| {
-            let bet = ctx.services.bet.find_bet(user_id, date);
+            let bet = user_id.map(|user_id| ctx.services.bet.find_bet(user_id, date));
 
             async move {
-                (
+                ForecastDay {
                     date,
                     forecast,
-                    bet.await.map(|bet| bet.wager).unwrap_or_default(),
-                )
+                    user_bet: if let Some(bet) = bet {
+                        Some(bet.await.map(|bet| bet.wager).unwrap_or_default())
+                    } else {
+                        None
+                    },
+                }
             }
         })
         .collect::<futures::stream::FuturesOrdered<_>>()
         .collect::<Vec<_>>()
         .await;
 
-    let balance = ctx.services.bet.get_balance(user_id).await;
+    let (hero, ready_payouts) = if let Some(user_id) = user_id {
+        let balance = {
+            let balance = ctx.services.bet.get_balance(user_id).await;
+            format!("{balance:.2}")
+        };
 
-    let ready_payouts = ctx.services.bet.get_ready(user_id).await.len();
+        let ready_payouts = ctx.services.bet.get_ready(user_id).await.len();
+
+        (balance, ready_payouts)
+    } else {
+        ("cloud casino".to_string(), 0)
+    };
 
     let payout = 0.0;
 
     views::page(views::shell::render(
-        balance,
+        hero,
         ready_payouts,
         true,
         html! {
@@ -189,7 +202,7 @@ async fn payout(State(ctx): State<Ctx>, user_id: UserId) -> Markup {
     let ready_payouts = ctx.services.bet.get_ready(user_id).await;
 
     views::page(views::shell::render(
-        balance,
+        format!("{balance:.2}"),
         ready_payouts.len(),
         false,
         views::payouts::render(

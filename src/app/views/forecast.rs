@@ -19,7 +19,14 @@ impl WeatherCode {
     }
 }
 
-pub fn render(days: Vec<(NaiveDate, Forecast, f64)>, selected: Option<NaiveDate>) -> Markup {
+#[derive(Clone, Debug)]
+pub struct ForecastDay {
+    pub date: NaiveDate,
+    pub forecast: Forecast,
+    pub user_bet: Option<f64>,
+}
+
+pub fn render(days: Vec<ForecastDay>, selected: Option<NaiveDate>) -> Markup {
     html! {
         form #forecast
             hx-get="/bet" hx-trigger="change"
@@ -30,7 +37,7 @@ pub fn render(days: Vec<(NaiveDate, Forecast, f64)>, selected: Option<NaiveDate>
                     input type="radio" name="date" value="null" checked[selected.is_none()];
                 }
 
-                @for (date, forecast, bet_placed) in days {
+                @for ForecastDay { date, forecast, user_bet } in days {
                     @let checked = selected.map(|d| d == date).unwrap_or(false);
                     label .weather-tile {
                         input type="radio" name="date" autocomplete="off"
@@ -52,9 +59,12 @@ pub fn render(days: Vec<(NaiveDate, Forecast, f64)>, selected: Option<NaiveDate>
                             i data-lucide="thermometer" {}
                         }
 
-                        .line .bet-amount {
-                            p { (format!("${bet_placed:.2}"))}
-                            i data-lucide="badge-dollar-sign" {}
+
+                        @if let Some(bet_placed) = user_bet {
+                            .line .bet-amount {
+                                p { (format!("${bet_placed:.2}"))}
+                                i data-lucide="badge-dollar-sign" {}
+                            }
                         }
                     }
                 }

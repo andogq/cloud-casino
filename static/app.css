@@ -274,7 +274,7 @@ main {
     align-items: center;
     justify-content: center;
     
-    & > #balance {
+    & > #hero {
         font-weight: var(--font-weight-6);
         color: var(--surface-1);
     }

@@ -1,9 +1,9 @@
 use maud::{html, Markup};
 
-pub fn render(balance: f64, payout_count: usize, show_payout: bool) -> Markup {
+pub fn render(hero: String, payout_count: usize, show_payout: bool) -> Markup {
     html! {
         #head {
-            h1 #balance { (format!("${balance:.2}")) }
+            h1 #hero { (hero) }
 
             @if payout_count > 0 && show_payout {
                 a href="/payout" hx-boost="true" #payout {
