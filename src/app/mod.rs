@@ -63,7 +63,7 @@ async fn index(State(ctx): State<Ctx>, user_id: Option<UserId>) -> Markup {
     let (hero, ready_payouts) = if let Some(user_id) = user_id {
         let balance = {
             let balance = ctx.services.bet.get_balance(user_id).await;
-            format!("{balance:.2}")
+            format!("${balance:.2}")
         };
 
         let ready_payouts = ctx.services.bet.get_ready(user_id).await.len();
@@ -212,7 +212,7 @@ async fn payout(State(ctx): State<Ctx>, user_id: UserId) -> Markup {
     let ready_payouts = ctx.services.bet.get_ready(user_id).await;
 
     views::page(views::shell::render(
-        format!("{balance:.2}"),
+        format!("${balance:.2}"),
         ready_payouts.len(),
         false,
         views::payouts::render(
